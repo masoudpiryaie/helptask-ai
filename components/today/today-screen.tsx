@@ -26,7 +26,7 @@ export function TodayScreen() {
 
       <section>
         <h1 className="text-[34px] font-bold leading-tight tracking-[-0.04em] text-[#111827]">
-          Good morning, Shokofeh
+          Good morning, Eddi
         </h1>
         <p className="mt-1 text-lg text-[#6B7280]">Today can be simple.</p>
       </section>
