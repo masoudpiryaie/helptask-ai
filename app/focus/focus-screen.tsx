@@ -1,21 +1,23 @@
 "use client";
-// import { useProgressStore } from "lib/stores/progress-store";
-// import type { FocusFeedback } from "types/progress";
+
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowLeft,
+  CheckCircle2,
+  Coffee,
   Pause,
   Play,
   RotateCcw,
   Sparkles,
-  Square,
   Timer,
   Wind,
 } from "lucide-react";
+import Link from "next/link";
 import { useTaskStore } from "lib/stores/task-store";
 import { useFocusStore } from "lib/stores/focus-store";
-import type { Task } from "types/task";
 import { useProgressStore } from "lib/stores/progress-store";
-import { FocusFeedback } from "types/progress";
+import type { Task } from "types/task";
+import type { FocusFeedback } from "types/progress";
 
 function formatTime(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -34,9 +36,11 @@ type FocusTimerProps = {
 
 function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
-  const addFocusSession = useProgressStore((state) => state.addFocusSession);
+
   const clearFocusTask = useFocusStore((state) => state.clearFocusTask);
   const setSessionMinutes = useFocusStore((state) => state.setSessionMinutes);
+
+  const addFocusSession = useProgressStore((state) => state.addFocusSession);
 
   const initialSeconds = sessionMinutes * 60;
 
@@ -45,6 +49,8 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
   const [focusFeedback, setFocusFeedback] = useState<FocusFeedback | null>(
     null,
   );
+  const [showSupport, setShowSupport] = useState(false);
+
   useEffect(() => {
     if (!isRunning) return;
 
@@ -99,50 +105,70 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
     setSessionMinutes(5);
   }
 
-  const progress = initialSeconds > 0 ? 1 - secondsLeft / initialSeconds : 0;
-
-  const progressPercent = Math.min(Math.max(progress * 100, 0), 100);
   const feedbackOptions: FocusFeedback[] = [
     "Easy",
     "Okay",
     "Hard",
     "Could not focus",
   ];
+
+  const progress = initialSeconds > 0 ? 1 - secondsLeft / initialSeconds : 0;
+
+  const progressPercent = Math.min(Math.max(progress * 100, 0), 100);
+
+  const sessionLabel =
+    currentTask.category === "Study" ? "Pomodoro session" : "Focus session";
+
   return (
     <>
       <section className="rounded-[32px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
         <div className="rounded-[26px] bg-[#EAF3FF] p-5">
-          <p className="text-sm font-semibold text-[#4F8DFD]">Current task</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-[#4F8DFD]">
+                Current task
+              </p>
 
-          <h2 className="mt-2 text-[20px] font-bold leading-7">
-            {currentTask.title}
-          </h2>
+              <h2 className="mt-2 text-[20px] font-bold leading-7">
+                {currentTask.title}
+              </h2>
 
-          <p className="mt-2 text-sm text-[#6B7280]">
-            {currentTask.category === "Study" ? "Pomodoro" : "Focus session"} ·{" "}
-            {currentTask.category}
-          </p>
+              <p className="mt-2 text-sm text-[#6B7280]">
+                {sessionLabel} · {currentTask.category}
+              </p>
+            </div>
+
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white">
+              <Timer size={21} className="text-[#4F8DFD]" />
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 text-center">
-          <div className="mx-auto flex h-56 w-56 items-center justify-center rounded-full border-[12px] border-[#EAF3FF] bg-white shadow-sm">
-            <div>
-              <p className="text-[48px] font-bold tracking-[-0.05em]">
-                {formatTime(secondsLeft)}
-              </p>
+          <div className="mx-auto flex h-60 w-60 items-center justify-center rounded-full bg-[#F8FAFC] p-4">
+            <div className="flex h-full w-full items-center justify-center rounded-full border-[12px] border-[#EAF3FF] bg-white shadow-sm">
+              <div>
+                <p className="text-[52px] font-bold tracking-[-0.06em]">
+                  {formatTime(secondsLeft)}
+                </p>
 
-              <p className="mt-2 text-sm font-medium text-[#6B7280]">
-                Focus session 1 of 4
-              </p>
+                <p className="mt-2 text-sm font-medium text-[#6B7280]">
+                  {isRunning ? "Stay with this one task" : "Ready when you are"}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#EAF3FF]">
+          <div className="mt-6 h-3 overflow-hidden rounded-full bg-[#EAF3FF]">
             <div
               className="h-full rounded-full bg-[#4F8DFD] transition-all"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
+
+          <p className="mt-3 text-xs font-medium text-[#6B7280]">
+            Starting counts. You do not need a perfect session.
+          </p>
         </div>
 
         <div className="mt-7 grid grid-cols-2 gap-3">
@@ -152,15 +178,15 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
             className="flex items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-4 py-4 text-[15px] font-semibold text-white"
           >
             {isRunning ? <Pause size={18} /> : <Play size={18} />}
-            {isRunning ? "Pause focus" : "Start focus"}
+            {isRunning ? "Pause" : "Start"}
           </button>
 
           <button
             type="button"
             onClick={handleFinish}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-[15px] font-semibold text-[#1F2937]"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-[#64C59A] px-4 py-4 text-[15px] font-semibold text-white"
           >
-            <Square size={17} />
+            <CheckCircle2 size={18} />
             Finish
           </button>
         </div>
@@ -171,38 +197,69 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-[15px] font-semibold text-[#1F2937]"
         >
           <RotateCcw size={17} />
-          Reset
+          Reset timer
         </button>
       </section>
 
       <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <div className="flex gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
-            <Wind size={20} className="text-[#C76A21]" />
-          </div>
-
-          <div>
-            <h2 className="text-[17px] font-semibold">I got distracted</h2>
-            <p className="mt-2 text-sm leading-6 text-[#6B7280]">
-              It happens. Take one breath and continue for 5 more minutes.
-            </p>
-          </div>
-        </div>
-
         <button
           type="button"
-          onClick={handleContinueFiveMinutes}
-          className="mt-4 w-full rounded-2xl bg-[#FDBA74] px-4 py-3 text-sm font-semibold text-white"
+          onClick={() => setShowSupport((current) => !current)}
+          className="flex w-full items-center justify-between gap-4 text-left"
         >
-          Continue for 5 more minutes
+          <div className="flex gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
+              <Wind size={20} className="text-[#C76A21]" />
+            </div>
+
+            <div>
+              <h2 className="text-[17px] font-semibold">
+                Need a softer start?
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-[#6B7280]">
+                Use a tiny step when focus feels difficult.
+              </p>
+            </div>
+          </div>
+
+          <Sparkles size={18} className="shrink-0 text-[#4F8DFD]" />
         </button>
+
+        {showSupport ? (
+          <div className="mt-4 rounded-2xl bg-[#F8FAFC] p-4">
+            <p className="text-sm leading-6 text-[#6B7280]">
+              Take one breath. Then continue for only 5 minutes. You can stop
+              after that if you need to.
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleContinueFiveMinutes}
+                className="rounded-2xl bg-[#FDBA74] px-4 py-3 text-sm font-semibold text-white"
+              >
+                5-minute try
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTakeBreak}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-semibold text-[#1F2937]"
+              >
+                <Coffee size={16} />
+                Break
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Sparkles size={19} className="text-[#4F8DFD]" />
-          <h2 className="text-[17px] font-semibold">How did it feel?</h2>
-        </div>
+        <h2 className="text-[17px] font-semibold">How did it feel?</h2>
+
+        <p className="mt-1 text-sm leading-6 text-[#6B7280]">
+          This helps the next plan fit you better.
+        </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           {feedbackOptions.map((item) => (
@@ -220,32 +277,6 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
             </button>
           ))}
         </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={handleTakeBreak}
-            className="rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#1F2937]"
-          >
-            Take a break
-          </button>
-
-          <button
-            type="button"
-            onClick={handleContinueFiveMinutes}
-            className="rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#1F2937]"
-          >
-            Continue
-          </button>
-
-          <button
-            type="button"
-            onClick={handleFinish}
-            className="rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#1F2937]"
-          >
-            Stop today
-          </button>
-        </div>
       </section>
     </>
   );
@@ -262,12 +293,14 @@ export function FocusScreen() {
 
   if (!currentTask) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] px-5 pb-28 pt-6 text-[#1F2937]">
+      <div className="px-5 pb-28 pt-6 text-[#1F2937]">
         <header className="mb-6">
           <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+
           <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
             Focus Mode
           </h1>
+
           <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
             Choose a task first, then start with one calm focus session.
           </p>
@@ -279,21 +312,39 @@ export function FocusScreen() {
           </div>
 
           <h2 className="mt-5 text-lg font-semibold">No focus task selected</h2>
+
           <p className="mt-2 text-sm leading-6 text-[#6B7280]">
             Go to Tasks or Plan and tap Start. I will bring the task here.
           </p>
+
+          <Link
+            href="/tasks"
+            className="mt-5 inline-flex rounded-2xl bg-[#4F8DFD] px-5 py-3 text-sm font-semibold text-white"
+          >
+            Go to tasks
+          </Link>
         </section>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 pb-28 pt-6 text-[#1F2937]">
+    <div className="px-5 pb-28 pt-6 text-[#1F2937]">
       <header className="mb-6">
+        <Link
+          href="/tasks"
+          className="mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white shadow-sm"
+          aria-label="Back to tasks"
+        >
+          <ArrowLeft size={20} />
+        </Link>
+
         <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+
         <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
           Focus Mode
         </h1>
+
         <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
           Start small. Staying for a few minutes already counts.
         </p>
@@ -304,6 +355,6 @@ export function FocusScreen() {
         currentTask={currentTask}
         sessionMinutes={sessionMinutes}
       />
-    </main>
+    </div>
   );
 }

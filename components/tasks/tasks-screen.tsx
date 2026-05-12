@@ -168,14 +168,16 @@ export function TasksScreen() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 pb-28 pt-6 text-[#1F2937]">
+    <div className="px-5 pb-28 pt-6 text-[#1F2937]">
       <header className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+
             <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
               My Tasks
             </h1>
+
             <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
               Keep everything in one calm place.
             </p>
@@ -211,6 +213,7 @@ export function TasksScreen() {
 
         <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-sm">
           <Search size={18} className="text-[#6B7280]" />
+
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -224,6 +227,7 @@ export function TasksScreen() {
         {filteredTasks.length === 0 ? (
           <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
             <p className="text-base font-semibold">No tasks found</p>
+
             <p className="mt-2 text-sm leading-6 text-[#6B7280]">
               Add one small task and start calmly.
             </p>
@@ -250,17 +254,19 @@ export function TasksScreen() {
                 }`}
               >
                 <div className="flex gap-3">
-                  <div
+                  <Link
+                    href={`/tasks/${task.id}`}
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
                       isDone ? "bg-white" : "bg-[#EAF3FF]"
                     }`}
+                    aria-label={`Open ${task.title}`}
                   >
                     {isDone ? (
                       <CheckCircle2 size={18} className="text-[#2F946A]" />
                     ) : (
                       getCategoryIcon(task.category)
                     )}
-                  </div>
+                  </Link>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
@@ -277,6 +283,7 @@ export function TasksScreen() {
                           {getTaskMeta(task)}
                         </p>
                       </Link>
+
                       <button
                         type="button"
                         onClick={() => deleteTask(task.id)}
@@ -296,7 +303,7 @@ export function TasksScreen() {
                         {getStatusLabel(task.status)}
                       </span>
 
-                      <div className="flex gap-2">
+                      <div className="flex shrink-0 gap-2">
                         {isDone ? (
                           <button
                             type="button"
@@ -336,6 +343,6 @@ export function TasksScreen() {
           })
         )}
       </section>
-    </main>
+    </div>
   );
 }

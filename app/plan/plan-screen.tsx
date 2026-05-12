@@ -1,254 +1,253 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  BookOpen,
-  BriefcaseBusiness,
-  CheckCircle2,
-  Home,
-  Lightbulb,
-  MoveRight,
-  Pencil,
+  ArrowRight,
+  CalendarCheck,
+  ChevronDown,
+  ChevronUp,
   RefreshCw,
   Sparkles,
   Wand2,
-  Play,
-  CalendarDays,
-  Bot,
-  Scale,
 } from "lucide-react";
-
-const planItems = [
-  {
-    time: "10:00 - 10:25",
-    title: "Study Finance Chapter 3",
-    subtitle: "Pomodoro · Focus task",
-    reason: "This task needs focus and your morning is free.",
-    icon: BookOpen,
-    badge: "Focus",
-    color: "green",
-  },
-  {
-    time: "11:30 - 12:00",
-    title: "Apply for one job",
-    subtitle: "Small step · Work",
-    reason: "This is important, so I made it short and clear.",
-    icon: BriefcaseBusiness,
-    badge: "Work",
-    color: "purple",
-  },
-  {
-    time: "15:00 - 15:10",
-    title: "Clean desk",
-    subtitle: "10-minute sprint · Home",
-    reason: "A short task can help you restart your day.",
-    icon: Home,
-    badge: "Home",
-    color: "blue",
-  },
-];
+import { useTaskStore } from "lib/stores/task-store";
+import { usePlanStore } from "lib/stores/plan-store";
+import { useFocusStore } from "lib/stores/focus-store";
+import { generateLocalDailyPlan } from "lib/planner/local-ai-planner";
 
 export function PlanScreen() {
-  return (
-    <div className="space-y-5">
-      <header>
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles className="text-[#4F8DFD]" size={26} />
-          <span className="rounded-full bg-[#EAF3FF] px-3 py-1 text-sm font-semibold text-[#4F8DFD]">
-            AI Planner
-          </span>
-        </div>
+  const router = useRouter();
 
-        <h1 className="text-[34px] font-bold leading-tight tracking-[-0.04em] text-[#111827]">
-          Today’s AI Plan
+  const tasks = useTaskStore((state) => state.tasks);
+  const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
+
+  const currentPlan = usePlanStore((state) => state.currentPlan);
+  const generatePlan = usePlanStore((state) => state.generatePlan);
+
+  const startFocusTask = useFocusStore((state) => state.startFocusTask);
+
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
+
+  const previewPlan = useMemo(() => {
+    return generateLocalDailyPlan(tasks);
+  }, [tasks]);
+
+  const plan = currentPlan ?? previewPlan;
+
+  function handleRegenerate() {
+    const newPlan = generatePlan(tasks);
+
+    if (newPlan.items.length > 0) {
+      setOpenItemId(newPlan.items[0].id);
+    }
+  }
+
+  function handleAcceptPlan() {
+    plan.items.forEach((item) => {
+      updateTaskStatus(item.taskId, "scheduled");
+    });
+  }
+
+  function handleMakeLighter() {
+    const lightTasks = tasks.filter(
+      (task) =>
+        task.status !== "done" &&
+        !task.hasFixedTime &&
+        (task.energyNeeded === "Low" ||
+          task.estimatedMinutes <= 25 ||
+          task.difficulty === "Easy"),
+    );
+
+    const lighterPlan = generatePlan(
+      lightTasks.length > 0 ? lightTasks : tasks,
+    );
+
+    if (lighterPlan.items.length > 0) {
+      setOpenItemId(lighterPlan.items[0].id);
+    }
+  }
+
+  function handleStartPlanItem(taskId: string, minutes: number) {
+    updateTaskStatus(taskId, "started");
+    startFocusTask(taskId, minutes);
+    router.push("/focus");
+  }
+
+  function toggleItem(itemId: string) {
+    setOpenItemId((current) => (current === itemId ? null : itemId));
+  }
+
+  return (
+    <div className="px-5 pb-28 pt-6 text-[#1F2937]">
+      <header className="mb-6">
+        <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+
+        <h1 className="mt-1 text-[30px] font-bold tracking-[-0.03em]">
+          Today&apos;s AI Plan
         </h1>
-        <p className="mt-1 text-base leading-6 text-[#6B7280]">
-          Made from your tasks, mood, energy, weather, and free time.
+
+        <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
+          A calm plan made from your tasks and current energy.
         </p>
       </header>
 
-      <PlanSummaryCard />
-
-      <section className="space-y-4">
-        {planItems.map((item) => (
-          <PlanItemCard key={item.title} item={item} />
-        ))}
-      </section>
-
-      <PlanActions />
-    </div>
-  );
-}
-
-function PlanSummaryCard() {
-  return (
-    <section className="rounded-[26px] border border-[#D7E6FF] bg-gradient-to-br from-[#EAF3FF] to-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-white">
-          <Scale className="text-[#4F8DFD]" size={32} />
-        </div>
-
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold tracking-[-0.03em]">
-            Balanced plan
-          </h2>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            A realistic plan with focus blocks and breaks.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <Metric number="3" label="important tasks" />
-        <Metric number="2" label="short breaks" />
-        <Metric number="1" label="backup task" />
-      </div>
-
-      <div className="mt-5 flex gap-3 rounded-[20px] bg-white/80 p-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EAF3FF]">
-          <Bot className="text-[#4F8DFD]" size={22} />
-        </div>
-        <p className="text-sm leading-5 text-[#4B5563]">
-          I kept the plan realistic for your current energy.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function Metric({ number, label }: { number: string; label: string }) {
-  return (
-    <div className="rounded-[20px] bg-white p-3 text-center shadow-sm">
-      <p className="text-2xl font-bold text-[#4F8DFD]">{number}</p>
-      <p className="mt-1 text-xs leading-4 text-[#6B7280]">{label}</p>
-    </div>
-  );
-}
-
-function PlanItemCard({
-  item,
-}: {
-  item: {
-    time: string;
-    title: string;
-    subtitle: string;
-    reason: string;
-    icon: React.ElementType;
-    badge: string;
-    color: string;
-  };
-}) {
-  const Icon = item.icon;
-  const colors = getColors(item.color);
-
-  return (
-    <article className="rounded-[26px] border border-[#E5E7EB] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <p className="mb-3 text-sm font-semibold text-[#4F8DFD]">{item.time}</p>
-
-      <div className="flex gap-4">
-        <div
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${colors.bg}`}
-        >
-          <Icon className={colors.text} size={28} />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-bold leading-tight tracking-[-0.03em] text-[#111827]">
-                {item.title}
-              </h2>
-              <p className="mt-1 text-sm text-[#6B7280]">{item.subtitle}</p>
-            </div>
-
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${colors.badge}`}
-            >
-              {item.badge}
-            </span>
+      {plan.items.length === 0 ? (
+        <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+            <Sparkles size={24} className="text-[#4F8DFD]" />
           </div>
 
-          <div className={`mt-4 rounded-[18px] border p-3 ${colors.reasonBox}`}>
-            <div className="flex gap-2">
-              <Lightbulb className={colors.text} size={18} />
-              <div>
-                <p className={`font-semibold ${colors.text}`}>Why now?</p>
-                <p className="text-sm leading-5 text-[#374151]">
-                  {item.reason}
+          <h2 className="mt-5 text-lg font-semibold">No plan yet</h2>
+
+          <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+            Add some flexible tasks first, then I can build a realistic plan for
+            your day.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleRegenerate}
+            className="mt-5 rounded-2xl bg-[#4F8DFD] px-5 py-3 text-sm font-semibold text-white"
+          >
+            Build today&apos;s plan
+          </button>
+        </section>
+      ) : (
+        <>
+          <section className="mb-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+                <CalendarCheck size={22} className="text-[#4F8DFD]" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold">{plan.title}</h2>
+
+                <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+                  {plan.importantTasks} important tasks · {plan.shortBreaks}{" "}
+                  short breaks · {plan.backupTasks} backup task
+                </p>
+
+                <p className="mt-3 text-sm leading-6 text-[#1F2937]">
+                  {plan.summary}
                 </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <button className="flex h-11 items-center justify-center gap-2 rounded-[16px] bg-[#4F8DFD] text-sm font-semibold text-white">
-              <Play size={15} fill="white" />
-              Start
+          <section className="grid gap-3">
+            {plan.items.map((item) => {
+              const isOpen = openItemId === item.id;
+
+              return (
+                <article
+                  key={item.id}
+                  className="rounded-[24px] border border-[#E5E7EB] bg-white p-4 shadow-sm"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleItem(item.id)}
+                    className="flex w-full items-start justify-between gap-4 text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[#4F8DFD]">
+                        {item.startTime} - {item.endTime}
+                      </p>
+
+                      <h2 className="mt-1 truncate text-[16px] font-semibold leading-6">
+                        {item.title}
+                      </h2>
+
+                      <p className="mt-1 text-sm text-[#6B7280]">
+                        {item.durationMinutes} min · {item.method} ·{" "}
+                        {item.category}
+                      </p>
+                    </div>
+
+                    <div className="mt-1 shrink-0 rounded-full bg-[#F8FAFC] p-2 text-[#6B7280]">
+                      {isOpen ? (
+                        <ChevronUp size={18} />
+                      ) : (
+                        <ChevronDown size={18} />
+                      )}
+                    </div>
+                  </button>
+
+                  {isOpen ? (
+                    <div className="mt-4 rounded-2xl bg-[#F8FAFC] p-4">
+                      <div className="flex gap-3">
+                        <Sparkles
+                          size={17}
+                          className="mt-0.5 shrink-0 text-[#4F8DFD]"
+                        />
+
+                        <div>
+                          <p className="text-sm font-semibold">Why now?</p>
+                          <p className="mt-1 text-sm leading-6 text-[#6B7280]">
+                            {item.reason}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleStartPlanItem(item.taskId, item.durationMinutes)
+                      }
+                      className="rounded-full bg-[#4F8DFD] px-4 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Start
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(item.id)}
+                      className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F2937]"
+                    >
+                      {isOpen ? "Hide why" : "Why now?"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          <section className="mt-5 grid gap-3">
+            <button
+              type="button"
+              onClick={handleAcceptPlan}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm"
+            >
+              Accept plan
+              <ArrowRight size={18} />
             </button>
 
-            <button className="flex h-11 items-center justify-center gap-1 rounded-[16px] border border-[#E5E7EB] bg-white text-sm font-semibold text-[#4B5563]">
-              <CalendarDays size={15} />
-              Move
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleMakeLighter}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-sm font-semibold text-[#1F2937] shadow-sm"
+              >
+                <Wand2 size={17} />
+                Lighter
+              </button>
 
-            <button className="flex h-11 items-center justify-center gap-1 rounded-[16px] border border-[#E5E7EB] bg-white text-sm font-semibold text-[#4B5563]">
-              <Wand2 size={15} />
-              Easier
-            </button>
-          </div>
-        </div>
-      </div>
-    </article>
+              <button
+                type="button"
+                onClick={handleRegenerate}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-sm font-semibold text-[#1F2937] shadow-sm"
+              >
+                <RefreshCw size={17} />
+                Regenerate
+              </button>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
   );
-}
-
-function PlanActions() {
-  return (
-    <section className="space-y-3">
-      <button className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] bg-[#4F8DFD] text-base font-semibold text-white shadow-[0_10px_24px_rgba(79,141,253,0.30)]">
-        <CheckCircle2 size={20} />
-        Accept plan
-      </button>
-
-      <button className="h-14 w-full rounded-[18px] border border-[#4F8DFD] bg-white text-base font-semibold text-[#4F8DFD]">
-        Make it lighter
-      </button>
-
-      <div className="flex items-center justify-center gap-5 pt-1 text-sm font-semibold text-[#6B7280]">
-        <button className="flex items-center gap-2">
-          <RefreshCw size={16} />
-          Regenerate
-        </button>
-
-        <span className="h-4 w-px bg-[#E5E7EB]" />
-
-        <button className="flex items-center gap-2">
-          <Pencil size={16} />
-          Edit manually
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function getColors(color: string) {
-  const map = {
-    green: {
-      bg: "bg-[#EAF7EF]",
-      text: "text-[#2F9461]",
-      badge: "bg-[#EAF7EF] text-[#2F9461]",
-      reasonBox: "border-[#CFE8D8] bg-[#F3FBF6]",
-    },
-    purple: {
-      bg: "bg-[#F3E8FF]",
-      text: "text-[#7C3AED]",
-      badge: "bg-[#F3E8FF] text-[#7C3AED]",
-      reasonBox: "border-[#DDD6FE] bg-[#FAF5FF]",
-    },
-    blue: {
-      bg: "bg-[#EAF3FF]",
-      text: "text-[#4F8DFD]",
-      badge: "bg-[#EAF3FF] text-[#4F8DFD]",
-      reasonBox: "border-[#D7E6FF] bg-[#F4F8FF]",
-    },
-  };
-
-  return map[color as keyof typeof map];
 }

@@ -3,10 +3,13 @@ import { persist } from "zustand/middleware";
 import { mockTasks } from "data/mock-tasks";
 import type { NewTaskInput, Task, TaskStatus } from "types/task";
 
+type UpdateTaskInput = Partial<NewTaskInput>;
+
 type TaskStore = {
   tasks: Task[];
 
   addTask: (input: NewTaskInput) => Task;
+  updateTask: (taskId: string, input: UpdateTaskInput) => void;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   deleteTask: (taskId: string) => void;
   clearTasks: () => void;
@@ -68,6 +71,36 @@ export const useTaskStore = create<TaskStore>()(
         });
 
         return newTask;
+      },
+
+      updateTask: (taskId, input) => {
+        set({
+          tasks: get().tasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  ...input,
+                  title: input.title ? input.title.trim() : task.title,
+                  deadlineLabel:
+                    input.deadlineLabel !== undefined
+                      ? input.deadlineLabel || "No deadline"
+                      : task.deadlineLabel,
+                  fixedTimeLabel:
+                    input.fixedTimeLabel !== undefined
+                      ? input.fixedTimeLabel
+                      : task.fixedTimeLabel,
+                  status:
+                    input.hasFixedTime !== undefined
+                      ? input.hasFixedTime
+                        ? "scheduled"
+                        : task.status === "scheduled"
+                          ? "pending"
+                          : task.status
+                      : task.status,
+                }
+              : task,
+          ),
+        });
       },
 
       updateTaskStatus: (taskId, status) => {
