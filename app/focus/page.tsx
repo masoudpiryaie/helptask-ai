@@ -1,4 +1,4 @@
-import { MobileShell } from "@/components/layout/mobile-shell";
+import { MobileShell } from "components/layout/mobile-shell";
 import { FocusScreen } from "./focus-screen";
 
 export default function FocusPage() {

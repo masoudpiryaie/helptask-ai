@@ -1,5 +1,5 @@
-import { MobileShell } from "@/components/layout/mobile-shell";
-import { TodayScreen } from "@/components/today/today-screen";
+import { MobileShell } from "components/layout/mobile-shell";
+import { TodayScreen } from "components/today/today-screen";
 
 export default function Home() {
   return (

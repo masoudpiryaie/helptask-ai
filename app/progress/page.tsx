@@ -1,4 +1,4 @@
-import { MobileShell } from "@/components/layout/mobile-shell";
+import { MobileShell } from "components/layout/mobile-shell";
 import { ProgressScreen } from "./progress-screen";
 
 export default function ProgressPage() {

@@ -1,259 +1,274 @@
+"use client";
+
 import {
+  Award,
   BarChart3,
-  Bot,
   CheckCircle2,
-  Clock,
-  Medal,
-  Rocket,
+  Flame,
+  Lightbulb,
+  PlayCircle,
   Sparkles,
-  Sprout,
-  Star,
-  Target,
-  Trophy,
+  Timer,
 } from "lucide-react";
+import { useMemo } from "react";
+import { useTaskStore } from "lib/stores/task-store";
+import { useProgressStore } from "lib/stores/progress-store";
 
-const weekData = [
-  { day: "Mon", value: 25 },
-  { day: "Tue", value: 40 },
-  { day: "Wed", value: 35 },
-  { day: "Thu", value: 50 },
-  { day: "Fri", value: 30 },
-  { day: "Sat", value: 15 },
-  { day: "Sun", value: 10 },
-];
+const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const badges = [
-  { label: "First Step", icon: Sprout, color: "blue" },
-  { label: "Focus Starter", icon: Target, color: "green" },
-  { label: "Comeback Day", icon: Rocket, color: "purple" },
-  { label: "Small Win", icon: Star, color: "orange" },
-];
+function isToday(dateText: string) {
+  const date = new Date(dateText);
+  const today = new Date();
+
+  return date.toDateString() === today.toDateString();
+}
+
+function getDayIndex(dateText: string) {
+  const date = new Date(dateText);
+  const day = date.getDay();
+
+  if (day === 0) return 6;
+
+  return day - 1;
+}
 
 export function ProgressScreen() {
-  return (
-    <div className="space-y-5">
-      <header>
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-[18px] bg-[#EAF3FF]">
-          <BarChart3 className="text-[#4F8DFD]" size={26} />
-        </div>
+  const tasks = useTaskStore((state) => state.tasks);
+  const focusSessions = useProgressStore((state) => state.focusSessions);
 
-        <h1 className="text-[34px] font-bold leading-tight tracking-[-0.04em] text-[#111827]">
+  const stats = useMemo(() => {
+    const startedTasks = tasks.filter(
+      (task) => task.status === "started" || task.status === "done",
+    );
+
+    const completedTasks = tasks.filter((task) => task.status === "done");
+
+    const todayFocusSessions = focusSessions.filter((session) =>
+      isToday(session.completedAt),
+    );
+
+    const todayFocusMinutes = todayFocusSessions.reduce(
+      (total, session) => total + session.minutes,
+      0,
+    );
+
+    const points =
+      startedTasks.length * 5 + completedTasks.length * 10 + todayFocusMinutes;
+
+    const weeklyMinutes = weekDays.map((day) => ({
+      day,
+      minutes: 0,
+    }));
+
+    focusSessions.forEach((session) => {
+      const index = getDayIndex(session.completedAt);
+      weeklyMinutes[index].minutes += session.minutes;
+    });
+
+    const maxMinutes = Math.max(
+      ...weeklyMinutes.map((item) => item.minutes),
+      25,
+    );
+
+    return {
+      startedTasks: startedTasks.length,
+      completedTasks: completedTasks.length,
+      todayFocusMinutes,
+      points,
+      weeklyMinutes,
+      maxMinutes,
+    };
+  }, [tasks, focusSessions]);
+
+  const badges = useMemo(() => {
+    const earnedBadges = [];
+
+    if (stats.startedTasks >= 1) {
+      earnedBadges.push({
+        title: "First Step",
+        description: "You started a task.",
+      });
+    }
+
+    if (stats.todayFocusMinutes >= 5) {
+      earnedBadges.push({
+        title: "Focus Starter",
+        description: "You completed focus time.",
+      });
+    }
+
+    if (stats.completedTasks >= 1) {
+      earnedBadges.push({
+        title: "Small Win",
+        description: "You completed a task.",
+      });
+    }
+
+    if (stats.startedTasks >= 2) {
+      earnedBadges.push({
+        title: "Comeback Day",
+        description: "You came back and started again.",
+      });
+    }
+
+    return earnedBadges;
+  }, [stats]);
+
+  return (
+    <main className="min-h-screen bg-[#F8FAFC] px-5 pb-28 pt-6 text-[#1F2937]">
+      <header className="mb-6">
+        <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+        <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
           Progress
         </h1>
-        <p className="mt-1 text-lg text-[#6B7280]">
+        <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
           Small progress still counts.
         </p>
       </header>
 
-      <TodayWinsCard />
-      <WeeklyProgressCard />
-      <RewardCard />
-      <BadgesCard />
-      <InsightCard />
-    </div>
-  );
-}
-
-function TodayWinsCard() {
-  return (
-    <section className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FFF3DD]">
-          <Trophy className="text-[#F59E0B]" size={24} />
-        </div>
-        <h2 className="text-xl font-bold tracking-[-0.03em]">Today’s wins</h2>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <WinMetric
-          icon={<Medal size={20} />}
-          number="2"
-          label="tasks started"
-        />
-        <WinMetric
-          icon={<CheckCircle2 size={20} />}
-          number="1"
-          label="task completed"
-        />
-        <WinMetric
-          icon={<Clock size={20} />}
-          number="25"
-          label="focus minutes"
-        />
-      </div>
-    </section>
-  );
-}
-
-function WinMetric({
-  icon,
-  number,
-  label,
-}: {
-  icon: React.ReactNode;
-  number: string;
-  label: string;
-}) {
-  return (
-    <div className="rounded-[20px] bg-[#F8FAFC] p-3 text-center">
-      <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF3FF] text-[#4F8DFD]">
-        {icon}
-      </div>
-      <p className="text-2xl font-bold text-[#111827]">{number}</p>
-      <p className="mt-1 text-xs leading-4 text-[#6B7280]">{label}</p>
-    </div>
-  );
-}
-
-function WeeklyProgressCard() {
-  const max = Math.max(...weekData.map((item) => item.value));
-
-  return (
-    <section className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F3E8FF]">
-          <BarChart3 className="text-[#7C3AED]" size={23} />
-        </div>
-        <h2 className="text-xl font-bold tracking-[-0.03em]">
-          Weekly progress
-        </h2>
-      </div>
-
-      <div className="flex h-44 items-end justify-between gap-2 rounded-[22px] bg-[#F8FAFC] p-4">
-        {weekData.map((item) => {
-          const height = (item.value / max) * 100;
-
-          return (
-            <div
-              key={item.day}
-              className="flex h-full flex-1 flex-col items-center justify-end"
-            >
-              <span className="mb-2 text-xs font-semibold text-[#6B7280]">
-                {item.value}m
-              </span>
-
-              <div
-                className="w-full rounded-t-full bg-[#4F8DFD]"
-                style={{ height: `${height}%` }}
-              />
-
-              <span className="mt-2 text-xs font-medium text-[#6B7280]">
-                {item.day}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function RewardCard() {
-  return (
-    <section className="rounded-[26px] border border-[#FED7AA] bg-[#FFF7ED] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center gap-4">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[26px] bg-white">
-          <Star className="text-[#F59E0B]" size={42} fill="#F59E0B" />
-        </div>
-
-        <div>
-          <p className="text-sm font-semibold text-[#EA580C]">You earned</p>
-          <h2 className="text-[34px] font-bold tracking-[-0.05em] text-[#C2410C]">
-            35 points
-          </h2>
-          <p className="mt-1 text-sm leading-5 text-[#9A3412]">
-            For starting tasks and completing one focus session.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function BadgesCard() {
-  return (
-    <section className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-[-0.03em]">Badges</h2>
-        <button className="text-sm font-semibold text-[#4F8DFD]">
-          View all
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {badges.map((badge) => {
-          const Icon = badge.icon;
-          const colors = getBadgeColors(badge.color);
-
-          return (
-            <div
-              key={badge.label}
-              className={`rounded-[20px] border p-4 text-center ${colors.box}`}
-            >
-              <div
-                className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full ${colors.circle}`}
-              >
-                <Icon size={24} className={colors.text} />
-              </div>
-              <p className="text-sm font-bold text-[#111827]">{badge.label}</p>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function InsightCard() {
-  return (
-    <section className="rounded-[26px] border border-[#D7E6FF] bg-gradient-to-br from-[#EAF3FF] to-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <div className="flex gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-white">
-          <Bot className="text-[#4F8DFD]" size={34} />
-        </div>
-
-        <div className="flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <Sparkles size={18} className="text-[#4F8DFD]" />
-            <h2 className="text-xl font-bold tracking-[-0.03em]">Insight</h2>
+      <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+            <Sparkles size={20} className="text-[#4F8DFD]" />
           </div>
 
-          <p className="text-sm leading-5 text-[#6B7280]">
-            You complete more focus tasks before noon.
-          </p>
-
-          <button className="mt-4 h-11 rounded-[16px] bg-[#4F8DFD] px-4 text-sm font-semibold text-white">
-            Use this in my next plan
-          </button>
+          <div>
+            <h2 className="text-lg font-semibold">Today&apos;s wins</h2>
+            <p className="text-sm text-[#6B7280]">Starting also counts here.</p>
+          </div>
         </div>
-      </div>
-    </section>
+
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-[#F8FAFC] p-4">
+            <PlayCircle size={20} className="text-[#4F8DFD]" />
+            <p className="mt-3 text-2xl font-bold">{stats.startedTasks}</p>
+            <p className="mt-1 text-xs font-medium text-[#6B7280]">
+              tasks started
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-[#F8FAFC] p-4">
+            <CheckCircle2 size={20} className="text-[#64C59A]" />
+            <p className="mt-3 text-2xl font-bold">{stats.completedTasks}</p>
+            <p className="mt-1 text-xs font-medium text-[#6B7280]">completed</p>
+          </div>
+
+          <div className="rounded-2xl bg-[#F8FAFC] p-4">
+            <Timer size={20} className="text-[#A78BFA]" />
+            <p className="mt-3 text-2xl font-bold">{stats.todayFocusMinutes}</p>
+            <p className="mt-1 text-xs font-medium text-[#6B7280]">
+              focus minutes
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-50">
+            <BarChart3 size={20} className="text-[#7C3AED]" />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold">Weekly focus</h2>
+            <p className="text-sm text-[#6B7280]">
+              Minutes from focus sessions.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex h-40 items-end gap-3">
+          {stats.weeklyMinutes.map((item) => {
+            const height = Math.max(
+              (item.minutes / stats.maxMinutes) * 100,
+              item.minutes > 0 ? 12 : 4,
+            );
+
+            return (
+              <div key={item.day} className="flex flex-1 flex-col items-center">
+                <div className="flex h-28 w-full items-end rounded-full bg-[#F8FAFC]">
+                  <div
+                    className="w-full rounded-full bg-[#4F8DFD]"
+                    style={{ height: `${height}%` }}
+                  />
+                </div>
+
+                <p className="mt-2 text-xs font-semibold text-[#6B7280]">
+                  {item.day}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
+            <Flame size={22} className="text-[#C76A21]" />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold">
+              You earned {stats.points} points
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+              For starting tasks, completing tasks, and finishing focus
+              sessions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <Award size={21} className="text-[#4F8DFD]" />
+          <h2 className="text-lg font-semibold">Badges</h2>
+        </div>
+
+        {badges.length === 0 ? (
+          <p className="text-sm leading-6 text-[#6B7280]">
+            Start one small task to unlock your first badge.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {badges.map((badge) => (
+              <div
+                key={badge.title}
+                className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4"
+              >
+                <p className="font-semibold">{badge.title}</p>
+                <p className="mt-1 text-xs leading-5 text-[#6B7280]">
+                  {badge.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="flex gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+            <Lightbulb size={20} className="text-[#4F8DFD]" />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold">Insight</h2>
+            <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+              You start more easily when the first step is small. I can use this
+              in your next plan.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="mt-5 w-full rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white"
+        >
+          Use this in my next plan
+        </button>
+      </section>
+    </main>
   );
-}
-
-function getBadgeColors(color: string) {
-  const map = {
-    blue: {
-      box: "border-[#D7E6FF] bg-[#F4F8FF]",
-      circle: "bg-[#EAF3FF]",
-      text: "text-[#4F8DFD]",
-    },
-    green: {
-      box: "border-[#CFE8D8] bg-[#F3FBF6]",
-      circle: "bg-[#EAF7EF]",
-      text: "text-[#2F9461]",
-    },
-    purple: {
-      box: "border-[#DDD6FE] bg-[#FAF5FF]",
-      circle: "bg-[#F3E8FF]",
-      text: "text-[#7C3AED]",
-    },
-    orange: {
-      box: "border-[#FED7AA] bg-[#FFF7ED]",
-      circle: "bg-[#FFF3DD]",
-      text: "text-[#F59E0B]",
-    },
-  };
-
-  return map[color as keyof typeof map];
 }

@@ -62,7 +62,7 @@ function getDefaultAiSuggestion(
   return "AI will help you find a realistic time for this task.";
 }
 
-export function AddTaskScreen() {
+export default function AddTaskScreen() {
   const router = useRouter();
   const addTask = useTaskStore((state) => state.addTask);
 
@@ -125,7 +125,7 @@ export function AddTaskScreen() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-5 pb-28 pt-6 text-[#1F2937]">
+    <div className="px-5 pb-28 pt-6 text-[#1F2937]">
       <header className="mb-6">
         <Link
           href="/tasks"
@@ -400,6 +400,6 @@ export function AddTaskScreen() {
           Save and let AI schedule it
         </button>
       </section>
-    </main>
+    </div>
   );
 }

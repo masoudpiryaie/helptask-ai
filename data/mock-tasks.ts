@@ -1,4 +1,4 @@
-import { Task } from "@/types/task";
+import { Task } from "types/task";
 
 export const mockTasks: Task[] = [
   {
@@ -7,12 +7,13 @@ export const mockTasks: Task[] = [
     category: "Study",
     status: "pending",
     hasFixedTime: false,
-    deadlineLabel: "Tomorrow",
-    estimatedMinutes: 45,
+    deadlineLabel: "Today",
+    estimatedMinutes: 25,
     difficulty: "Medium",
     energyNeeded: "Medium",
     priority: "High",
-    aiSuggestion: "Best before 12:00",
+    aiSuggestion: "Good for a Pomodoro session before your energy drops.",
+    createdAt: new Date().toISOString(),
   },
   {
     id: "task-2",
@@ -20,11 +21,13 @@ export const mockTasks: Task[] = [
     category: "Work",
     status: "pending",
     hasFixedTime: false,
+    deadlineLabel: "This week",
     estimatedMinutes: 30,
-    difficulty: "Medium",
-    energyNeeded: "Medium",
+    difficulty: "Hard",
+    energyNeeded: "High",
     priority: "High",
-    aiSuggestion: "Small step recommended",
+    aiSuggestion: "Start with one small step: open the job description.",
+    createdAt: new Date().toISOString(),
   },
   {
     id: "task-3",
@@ -32,11 +35,14 @@ export const mockTasks: Task[] = [
     category: "Health",
     status: "scheduled",
     hasFixedTime: true,
-    fixedTimeLabel: "2:00 PM - 3:00 PM",
-    estimatedMinutes: 60,
+    fixedTimeLabel: "14:30",
+    deadlineLabel: "Today",
+    estimatedMinutes: 45,
     difficulty: "Easy",
     energyNeeded: "Low",
-    priority: "Normal",
+    priority: "Urgent",
+    aiSuggestion: "Fixed-time task. I will protect this time in your plan.",
+    createdAt: new Date().toISOString(),
   },
   {
     id: "task-4",
@@ -44,10 +50,12 @@ export const mockTasks: Task[] = [
     category: "Home",
     status: "pending",
     hasFixedTime: false,
+    deadlineLabel: "No deadline",
     estimatedMinutes: 10,
     difficulty: "Easy",
     energyNeeded: "Low",
-    priority: "Low",
-    aiSuggestion: "Good for a short restart",
+    priority: "Normal",
+    aiSuggestion: "A 10-minute sprint is enough to start.",
+    createdAt: new Date().toISOString(),
   },
 ];
