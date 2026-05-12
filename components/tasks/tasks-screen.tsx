@@ -3,6 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "lib/stores/auth-store";
+import {
+  deleteTaskFromFirestore,
+  updateTaskStatusInFirestore,
+} from "lib/firebase/task-service";
 import {
   Briefcase,
   CheckCircle2,
@@ -130,10 +135,8 @@ function getTaskMeta(task: Task) {
 
 export function TasksScreen() {
   const router = useRouter();
-
+  const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
-  const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
-  const deleteTask = useTaskStore((state) => state.deleteTask);
 
   const startFocusTask = useFocusStore((state) => state.startFocusTask);
 
@@ -151,20 +154,48 @@ export function TasksScreen() {
     });
   }, [tasks, activeFilter, search]);
 
-  function handleStartTask(task: Task) {
+  async function handleStartTask(task: Task) {
+    if (!user) return;
+
     const minutes = getFocusMinutes(task);
 
-    updateTaskStatus(task.id, "started");
-    startFocusTask(task.id, minutes);
-    router.push("/focus");
+    try {
+      await updateTaskStatusInFirestore(user.uid, task.id, "started");
+      startFocusTask(task.id, minutes);
+      router.push("/focus");
+    } catch (error) {
+      console.error("Start task error:", error);
+    }
   }
 
-  function handleScheduleTask(task: Task) {
-    updateTaskStatus(task.id, "scheduled");
+  async function handleScheduleTask(task: Task) {
+    if (!user) return;
+
+    try {
+      await updateTaskStatusInFirestore(user.uid, task.id, "scheduled");
+    } catch (error) {
+      console.error("Schedule task error:", error);
+    }
   }
 
-  function handleUndoDone(task: Task) {
-    updateTaskStatus(task.id, "pending");
+  async function handleUndoDone(task: Task) {
+    if (!user) return;
+
+    try {
+      await updateTaskStatusInFirestore(user.uid, task.id, "pending");
+    } catch (error) {
+      console.error("Undo task error:", error);
+    }
+  }
+
+  async function handleDeleteTask(task: Task) {
+    if (!user) return;
+
+    try {
+      await deleteTaskFromFirestore(user.uid, task.id);
+    } catch (error) {
+      console.error("Delete task error:", error);
+    }
   }
 
   return (
@@ -194,7 +225,7 @@ export function TasksScreen() {
       </header>
 
       <section className="mb-5">
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {filters.map((filter) => (
             <button
               key={filter}
@@ -286,7 +317,7 @@ export function TasksScreen() {
 
                       <button
                         type="button"
-                        onClick={() => deleteTask(task.id)}
+                        onClick={() => handleDeleteTask(task)}
                         className="shrink-0 rounded-full p-2 text-[#9CA3AF] transition hover:bg-[#F8FAFC]"
                         aria-label="Delete task"
                       >

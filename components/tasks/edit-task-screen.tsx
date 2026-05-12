@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "lib/stores/auth-store";
+import { updateTaskInFirestore } from "lib/firebase/task-service";
 import {
   ArrowLeft,
   Calendar,
@@ -68,9 +70,8 @@ function getDefaultAiSuggestion(
 
 export function EditTaskScreen({ taskId }: EditTaskScreenProps) {
   const router = useRouter();
-
+  const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
-  const updateTask = useTaskStore((state) => state.updateTask);
 
   const task = useMemo(() => {
     return tasks.find((item) => item.id === taskId) || null;
@@ -115,7 +116,7 @@ export function EditTaskScreen({ taskId }: EditTaskScreenProps) {
     return Math.min(Math.round(parsed), 240);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!task) return;
 
     if (!title.trim()) {
@@ -123,27 +124,39 @@ export function EditTaskScreen({ taskId }: EditTaskScreenProps) {
       return;
     }
 
+    if (!user) {
+      setError("Please wait a moment and try again.");
+      return;
+    }
+
     const finalDuration = getFinalDuration();
 
-    updateTask(task.id, {
-      title,
-      category,
-      hasFixedTime,
-      fixedTimeLabel: hasFixedTime ? fixedTimeLabel || "Fixed time" : undefined,
-      deadlineLabel: deadlineLabel || "No deadline",
-      estimatedMinutes: finalDuration,
-      difficulty,
-      energyNeeded,
-      priority,
-      aiSuggestion: getDefaultAiSuggestion(
+    try {
+      await updateTaskInFirestore(user.uid, task.id, {
+        title,
         category,
+        hasFixedTime,
+        fixedTimeLabel: hasFixedTime
+          ? fixedTimeLabel || "Fixed time"
+          : undefined,
+        deadlineLabel: deadlineLabel || "No deadline",
+        estimatedMinutes: finalDuration,
         difficulty,
         energyNeeded,
-        finalDuration,
-      ),
-    });
+        priority,
+        aiSuggestion: getDefaultAiSuggestion(
+          category,
+          difficulty,
+          energyNeeded,
+          finalDuration,
+        ),
+      });
 
-    router.push(`/tasks/${task.id}`);
+      router.push(`/tasks/${task.id}`);
+    } catch (error) {
+      console.error("Update task error:", error);
+      setError("Could not save changes. Please try again.");
+    }
   }
 
   if (!task) {

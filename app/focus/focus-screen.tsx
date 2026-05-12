@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useAuthStore } from "lib/stores/auth-store";
+import { updateTaskStatusInFirestore } from "lib/firebase/task-service";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -36,7 +38,7 @@ type FocusTimerProps = {
 
 function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
-
+  const user = useAuthStore((state) => state.user);
   const clearFocusTask = useFocusStore((state) => state.clearFocusTask);
   const setSessionMinutes = useFocusStore((state) => state.setSessionMinutes);
 
@@ -83,18 +85,24 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
     setSecondsLeft(initialSeconds);
   }
 
-  function handleFinish() {
-    updateTaskStatus(currentTask.id, "done");
+  async function handleFinish() {
+    if (!user) return;
 
-    addFocusSession({
-      taskId: currentTask.id,
-      taskTitle: currentTask.title,
-      minutes: sessionMinutes,
-      feedback: focusFeedback || undefined,
-    });
+    try {
+      await updateTaskStatusInFirestore(user.uid, currentTask.id, "done");
 
-    setIsRunning(false);
-    clearFocusTask();
+      addFocusSession({
+        taskId: currentTask.id,
+        taskTitle: currentTask.title,
+        minutes: sessionMinutes,
+        feedback: focusFeedback || undefined,
+      });
+
+      setIsRunning(false);
+      clearFocusTask();
+    } catch (error) {
+      console.error("Finish focus error:", error);
+    }
   }
 
   function handleTakeBreak() {

@@ -1,19 +1,22 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { mockTasks } from "data/mock-tasks";
 import type { NewTaskInput, Task, TaskStatus } from "types/task";
 
 type UpdateTaskInput = Partial<NewTaskInput>;
 
 type TaskStore = {
   tasks: Task[];
+  isTaskSyncReady: boolean;
+
+  setTasks: (tasks: Task[]) => void;
+  setIsTaskSyncReady: (isTaskSyncReady: boolean) => void;
 
   addTask: (input: NewTaskInput) => Task;
   updateTask: (taskId: string, input: UpdateTaskInput) => void;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   deleteTask: (taskId: string) => void;
   clearTasks: () => void;
-  resetToMockTasks: () => void;
+  resetTasks: () => void;
 };
 
 function createTaskId() {
@@ -47,7 +50,16 @@ function buildAiSuggestion(input: NewTaskInput) {
 export const useTaskStore = create<TaskStore>()(
   persist(
     (set, get) => ({
-      tasks: mockTasks,
+      tasks: [],
+      isTaskSyncReady: false,
+
+      setTasks: (tasks) => {
+        set({ tasks });
+      },
+
+      setIsTaskSyncReady: (isTaskSyncReady) => {
+        set({ isTaskSyncReady });
+      },
 
       addTask: (input) => {
         const newTask: Task = {
@@ -121,8 +133,8 @@ export const useTaskStore = create<TaskStore>()(
         set({ tasks: [] });
       },
 
-      resetToMockTasks: () => {
-        set({ tasks: mockTasks });
+      resetTasks: () => {
+        set({ tasks: [] });
       },
     }),
     {

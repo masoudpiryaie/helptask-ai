@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "lib/stores/auth-store";
+import { createTaskInFirestore } from "lib/firebase/task-service";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -78,7 +80,7 @@ export function AddTaskScreen() {
   const [energyNeeded, setEnergyNeeded] = useState<TaskEnergy>("Medium");
   const [priority, setPriority] = useState<TaskPriority>("Normal");
   const [error, setError] = useState("");
-
+  const user = useAuthStore((state) => state.user);
   function getFinalDuration() {
     if (!isCustomDuration) {
       return estimatedMinutes;
@@ -93,15 +95,20 @@ export function AddTaskScreen() {
     return Math.min(Math.round(parsed), 240);
   }
 
-  function handleSave(scheduleWithAI: boolean) {
+  async function handleSave(scheduleWithAI: boolean) {
     if (!title.trim()) {
       setError("Please add a task title.");
       return;
     }
 
+    if (!user) {
+      setError("Please wait a moment and try again.");
+      return;
+    }
+
     const finalDuration = getFinalDuration();
 
-    addTask({
+    const input = {
       title,
       category,
       hasFixedTime,
@@ -119,9 +126,15 @@ export function AddTaskScreen() {
             energyNeeded,
             finalDuration,
           ),
-    });
+    };
 
-    router.push("/tasks");
+    try {
+      await createTaskInFirestore(user.uid, input);
+      router.push("/tasks");
+    } catch (error) {
+      console.error("Create task error:", error);
+      setError("Could not save this task. Please try again.");
+    }
   }
 
   return (

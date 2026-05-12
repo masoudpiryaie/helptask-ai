@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "lib/stores/auth-store";
+import {
+  deleteTaskFromFirestore,
+  updateTaskStatusInFirestore,
+} from "lib/firebase/task-service";
 import {
   ArrowLeft,
   Calendar,
@@ -50,7 +55,7 @@ function getStatusClassName(status: TaskStatus) {
 
 export function TaskDetailScreen({ taskId }: TaskDetailScreenProps) {
   const router = useRouter();
-
+  const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
   const deleteTask = useTaskStore((state) => state.deleteTask);
@@ -59,29 +64,59 @@ export function TaskDetailScreen({ taskId }: TaskDetailScreenProps) {
 
   const task = tasks.find((item) => item.id === taskId);
 
-  function handleStartTask(currentTask: Task) {
+  async function handleStartTask(currentTask: Task) {
+    if (!user) return;
+
     const minutes = getFocusMinutes(currentTask);
 
-    updateTaskStatus(currentTask.id, "started");
-    startFocusTask(currentTask.id, minutes);
-    router.push("/focus");
+    try {
+      await updateTaskStatusInFirestore(user.uid, currentTask.id, "started");
+      startFocusTask(currentTask.id, minutes);
+      router.push("/focus");
+    } catch (error) {
+      console.error("Start task error:", error);
+    }
   }
 
-  function handleScheduleTask(currentTask: Task) {
-    updateTaskStatus(currentTask.id, "scheduled");
+  async function handleScheduleTask(currentTask: Task) {
+    if (!user) return;
+
+    try {
+      await updateTaskStatusInFirestore(user.uid, currentTask.id, "scheduled");
+    } catch (error) {
+      console.error("Schedule task error:", error);
+    }
   }
 
-  function handleMarkDone(currentTask: Task) {
-    updateTaskStatus(currentTask.id, "done");
+  async function handleMarkDone(currentTask: Task) {
+    if (!user) return;
+
+    try {
+      await updateTaskStatusInFirestore(user.uid, currentTask.id, "done");
+    } catch (error) {
+      console.error("Mark done error:", error);
+    }
   }
 
-  function handleUndoDone(currentTask: Task) {
-    updateTaskStatus(currentTask.id, "pending");
+  async function handleUndoDone(currentTask: Task) {
+    if (!user) return;
+
+    try {
+      await updateTaskStatusInFirestore(user.uid, currentTask.id, "pending");
+    } catch (error) {
+      console.error("Undo done error:", error);
+    }
   }
 
-  function handleDelete(currentTask: Task) {
-    deleteTask(currentTask.id);
-    router.push("/tasks");
+  async function handleDelete(currentTask: Task) {
+    if (!user) return;
+
+    try {
+      await deleteTaskFromFirestore(user.uid, currentTask.id);
+      router.push("/tasks");
+    } catch (error) {
+      console.error("Delete task error:", error);
+    }
   }
 
   if (!task) {
