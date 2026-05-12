@@ -124,7 +124,7 @@ export function TodayScreen() {
         <div className="mt-3 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-[31px] font-bold tracking-[-0.03em]">
-              Good morning, Shokofeh
+              Good morning, Eddi
             </h1>
 
             <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
