@@ -1,6 +1,6 @@
 "use client";
 // import { useProgressStore } from "lib/stores/progress-store";
-import type { FocusFeedback } from "types/progress";
+// import type { FocusFeedback } from "types/progress";
 import { useEffect, useMemo, useState } from "react";
 import {
   Pause,
@@ -15,7 +15,7 @@ import { useTaskStore } from "lib/stores/task-store";
 import { useFocusStore } from "lib/stores/focus-store";
 import type { Task } from "types/task";
 import { useProgressStore } from "lib/stores/progress-store";
-// import { useProgressStore } from "lib/stores/progress-store";
+import { FocusFeedback } from "types/progress";
 
 function formatTime(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);

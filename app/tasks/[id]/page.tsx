@@ -125,281 +125,283 @@ export default function AddTaskScreen() {
   }
 
   return (
-    <div className="px-5 pb-28 pt-6 text-[#1F2937]">
-      <header className="mb-6">
-        <Link
-          href="/tasks"
-          className="mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white shadow-sm"
-          aria-label="Back to tasks"
-        >
-          <ArrowLeft size={20} />
-        </Link>
+    <main className="min-h-screen bg-[#F8FAFC] px-5 pb-28 pt-6 text-[#1F2937]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-[#F8FAFC]">
+        <header className="mb-6">
+          <Link
+            href="/tasks"
+            className="mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white shadow-sm"
+            aria-label="Back to tasks"
+          >
+            <ArrowLeft size={20} />
+          </Link>
 
-        <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
-        <h1 className="mt-1 text-[30px] font-bold tracking-[-0.03em]">
-          Add a new task
-        </h1>
-        <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
-          Keep it simple. You can improve the details later.
-        </p>
-      </header>
+          <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+          <h1 className="mt-1 text-[30px] font-bold tracking-[-0.03em]">
+            Add a new task
+          </h1>
+          <p className="mt-2 text-[15px] leading-6 text-[#6B7280]">
+            Keep it simple. You can improve the details later.
+          </p>
+        </header>
 
-      <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <label className="text-sm font-semibold">Task title</label>
+        <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <label className="text-sm font-semibold">Task title</label>
 
-        <input
-          value={title}
-          onChange={(event) => {
-            setTitle(event.target.value);
-            setError("");
-          }}
-          placeholder="Example: Apply for one job"
-          className="mt-3 w-full rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3 text-[15px] outline-none transition focus:border-[#4F8DFD] focus:bg-white"
-        />
+          <input
+            value={title}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              setError("");
+            }}
+            placeholder="Example: Apply for one job"
+            className="mt-3 w-full rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3 text-[15px] outline-none transition focus:border-[#4F8DFD] focus:bg-white"
+          />
 
-        {error ? <p className="mt-2 text-sm text-red-500">{error}</p> : null}
+          {error ? <p className="mt-2 text-sm text-red-500">{error}</p> : null}
 
-        <div className="mt-5">
-          <p className="text-sm font-semibold">Category</p>
+          <div className="mt-5">
+            <p className="text-sm font-semibold">Category</p>
 
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {categories.map((item) => (
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              {categories.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setCategory(item)}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                    category === item
+                      ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
+                      : "border-[#E5E7EB] bg-white text-[#6B7280]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+              <Timer size={19} className="text-[#4F8DFD]" />
+            </div>
+
+            <div>
+              <h2 className="text-[17px] font-semibold">Time</h2>
+              <p className="text-sm text-[#6B7280]">
+                A rough estimate is enough.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {durationOptions.map((duration) => (
               <button
-                key={item}
+                key={duration}
                 type="button"
-                onClick={() => setCategory(item)}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
-                  category === item
+                onClick={() => {
+                  setEstimatedMinutes(duration);
+                  setIsCustomDuration(false);
+                }}
+                className={`rounded-2xl border px-2 py-3 text-sm font-semibold ${
+                  !isCustomDuration && estimatedMinutes === duration
                     ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
                     : "border-[#E5E7EB] bg-white text-[#6B7280]"
                 }`}
               >
-                {item}
+                {duration}
+                <span className="block text-[11px] font-medium">min</span>
               </button>
             ))}
           </div>
-        </div>
-      </section>
 
-      <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EAF3FF]">
-            <Timer size={19} className="text-[#4F8DFD]" />
+          <button
+            type="button"
+            onClick={() => setIsCustomDuration(true)}
+            className={`mt-3 w-full rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              isCustomDuration
+                ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
+                : "border-[#E5E7EB] bg-white text-[#6B7280]"
+            }`}
+          >
+            Custom duration
+          </button>
+
+          {isCustomDuration ? (
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
+              <Clock size={18} className="text-[#6B7280]" />
+              <input
+                value={customDuration}
+                onChange={(event) => setCustomDuration(event.target.value)}
+                inputMode="numeric"
+                placeholder="Example: 90"
+                className="w-full bg-transparent text-[15px] outline-none"
+              />
+              <span className="text-sm font-medium text-[#6B7280]">min</span>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50">
+              <Calendar size={19} className="text-[#7C3AED]" />
+            </div>
+
+            <div>
+              <h2 className="text-[17px] font-semibold">Schedule</h2>
+              <p className="text-sm text-[#6B7280]">
+                Fixed time or flexible task.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <h2 className="text-[17px] font-semibold">Time</h2>
-            <p className="text-sm text-[#6B7280]">
-              A rough estimate is enough.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2">
-          {durationOptions.map((duration) => (
+          <div className="grid grid-cols-2 gap-3">
             <button
-              key={duration}
               type="button"
-              onClick={() => {
-                setEstimatedMinutes(duration);
-                setIsCustomDuration(false);
-              }}
-              className={`rounded-2xl border px-2 py-3 text-sm font-semibold ${
-                !isCustomDuration && estimatedMinutes === duration
+              onClick={() => setHasFixedTime(false)}
+              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                !hasFixedTime
                   ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
                   : "border-[#E5E7EB] bg-white text-[#6B7280]"
               }`}
             >
-              {duration}
-              <span className="block text-[11px] font-medium">min</span>
+              Flexible
             </button>
-          ))}
-        </div>
 
-        <button
-          type="button"
-          onClick={() => setIsCustomDuration(true)}
-          className={`mt-3 w-full rounded-2xl border px-4 py-3 text-sm font-semibold ${
-            isCustomDuration
-              ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
-              : "border-[#E5E7EB] bg-white text-[#6B7280]"
-          }`}
-        >
-          Custom duration
-        </button>
+            <button
+              type="button"
+              onClick={() => setHasFixedTime(true)}
+              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                hasFixedTime
+                  ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
+                  : "border-[#E5E7EB] bg-white text-[#6B7280]"
+              }`}
+            >
+              Fixed time
+            </button>
+          </div>
 
-        {isCustomDuration ? (
+          {hasFixedTime ? (
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
+              <Clock size={18} className="text-[#6B7280]" />
+              <input
+                value={fixedTimeLabel}
+                onChange={(event) => setFixedTimeLabel(event.target.value)}
+                placeholder="Example: 14:30"
+                className="w-full bg-transparent text-[15px] outline-none"
+              />
+            </div>
+          ) : (
+            <div className="mt-3 rounded-2xl bg-[#EAF3FF] p-4">
+              <div className="flex gap-3">
+                <Sparkles size={18} className="mt-0.5 text-[#4F8DFD]" />
+                <p className="text-sm leading-6 text-[#1F2937]">
+                  AI can suggest a calm time for this task.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
-            <Clock size={18} className="text-[#6B7280]" />
+            <Calendar size={18} className="text-[#6B7280]" />
             <input
-              value={customDuration}
-              onChange={(event) => setCustomDuration(event.target.value)}
-              inputMode="numeric"
-              placeholder="Example: 90"
-              className="w-full bg-transparent text-[15px] outline-none"
-            />
-            <span className="text-sm font-medium text-[#6B7280]">min</span>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50">
-            <Calendar size={19} className="text-[#7C3AED]" />
-          </div>
-
-          <div>
-            <h2 className="text-[17px] font-semibold">Schedule</h2>
-            <p className="text-sm text-[#6B7280]">
-              Fixed time or flexible task.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setHasFixedTime(false)}
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              !hasFixedTime
-                ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
-                : "border-[#E5E7EB] bg-white text-[#6B7280]"
-            }`}
-          >
-            Flexible
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setHasFixedTime(true)}
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              hasFixedTime
-                ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
-                : "border-[#E5E7EB] bg-white text-[#6B7280]"
-            }`}
-          >
-            Fixed time
-          </button>
-        </div>
-
-        {hasFixedTime ? (
-          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
-            <Clock size={18} className="text-[#6B7280]" />
-            <input
-              value={fixedTimeLabel}
-              onChange={(event) => setFixedTimeLabel(event.target.value)}
-              placeholder="Example: 14:30"
+              value={deadlineLabel}
+              onChange={(event) => setDeadlineLabel(event.target.value)}
+              placeholder="Deadline: Today, Friday, No deadline"
               className="w-full bg-transparent text-[15px] outline-none"
             />
           </div>
-        ) : (
-          <div className="mt-3 rounded-2xl bg-[#EAF3FF] p-4">
-            <div className="flex gap-3">
-              <Sparkles size={18} className="mt-0.5 text-[#4F8DFD]" />
-              <p className="text-sm leading-6 text-[#1F2937]">
-                AI can suggest a calm time for this task.
-              </p>
+        </section>
+
+        <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <h2 className="text-[17px] font-semibold">Task effort</h2>
+          <p className="mt-1 text-sm text-[#6B7280]">
+            This helps AI choose a better time.
+          </p>
+
+          <div className="mt-5">
+            <p className="text-sm font-semibold">Difficulty</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {difficulties.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setDifficulty(item)}
+                  className={`rounded-2xl border px-3 py-3 text-sm font-semibold ${
+                    difficulty === item
+                      ? "border-[#A78BFA] bg-purple-50 text-[#7C3AED]"
+                      : "border-[#E5E7EB] bg-white text-[#6B7280]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
             </div>
           </div>
-        )}
 
-        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
-          <Calendar size={18} className="text-[#6B7280]" />
-          <input
-            value={deadlineLabel}
-            onChange={(event) => setDeadlineLabel(event.target.value)}
-            placeholder="Deadline: Today, Friday, No deadline"
-            className="w-full bg-transparent text-[15px] outline-none"
-          />
-        </div>
-      </section>
-
-      <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
-        <h2 className="text-[17px] font-semibold">Task effort</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          This helps AI choose a better time.
-        </p>
-
-        <div className="mt-5">
-          <p className="text-sm font-semibold">Difficulty</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {difficulties.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setDifficulty(item)}
-                className={`rounded-2xl border px-3 py-3 text-sm font-semibold ${
-                  difficulty === item
-                    ? "border-[#A78BFA] bg-purple-50 text-[#7C3AED]"
-                    : "border-[#E5E7EB] bg-white text-[#6B7280]"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
+          <div className="mt-5">
+            <p className="text-sm font-semibold">Energy needed</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {energyLevels.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setEnergyNeeded(item)}
+                  className={`rounded-2xl border px-3 py-3 text-sm font-semibold ${
+                    energyNeeded === item
+                      ? "border-[#64C59A] bg-green-50 text-[#2F946A]"
+                      : "border-[#E5E7EB] bg-white text-[#6B7280]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="mt-5">
-          <p className="text-sm font-semibold">Energy needed</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {energyLevels.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setEnergyNeeded(item)}
-                className={`rounded-2xl border px-3 py-3 text-sm font-semibold ${
-                  energyNeeded === item
-                    ? "border-[#64C59A] bg-green-50 text-[#2F946A]"
-                    : "border-[#E5E7EB] bg-white text-[#6B7280]"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
+          <div className="mt-5">
+            <p className="text-sm font-semibold">Priority</p>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {priorities.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setPriority(item)}
+                  className={`rounded-2xl border px-2 py-3 text-sm font-semibold ${
+                    priority === item
+                      ? "border-[#FDBA74] bg-orange-50 text-[#C76A21]"
+                      : "border-[#E5E7EB] bg-white text-[#6B7280]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="mt-5">
-          <p className="text-sm font-semibold">Priority</p>
-          <div className="mt-3 grid grid-cols-4 gap-2">
-            {priorities.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setPriority(item)}
-                className={`rounded-2xl border px-2 py-3 text-sm font-semibold ${
-                  priority === item
-                    ? "border-[#FDBA74] bg-orange-50 text-[#C76A21]"
-                    : "border-[#E5E7EB] bg-white text-[#6B7280]"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+        <section className="mt-5 grid gap-3">
+          <button
+            type="button"
+            onClick={() => handleSave(false)}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm"
+          >
+            <Check size={18} />
+            Save task
+          </button>
 
-      <section className="mt-5 grid gap-3">
-        <button
-          type="button"
-          onClick={() => handleSave(false)}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm"
-        >
-          <Check size={18} />
-          Save task
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleSave(true)}
-          className="rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 text-[15px] font-semibold text-[#1F2937] shadow-sm"
-        >
-          Save and let AI schedule it
-        </button>
-      </section>
-    </div>
+          <button
+            type="button"
+            onClick={() => handleSave(true)}
+            className="rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 text-[15px] font-semibold text-[#1F2937] shadow-sm"
+          >
+            Save and let AI schedule it
+          </button>
+        </section>
+      </div>
+    </main>
   );
 }
