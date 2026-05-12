@@ -24,7 +24,11 @@ type TaskListener = {
   onTasksChange: (tasks: Task[]) => void;
   onError?: (error: Error) => void;
 };
-
+function removeUndefinedFields<T extends Record<string, unknown>>(data: T) {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+}
 function createTaskId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -106,7 +110,7 @@ export async function createTaskInFirestore(
     updatedAt: serverTimestamp(),
   };
 
-  await setDoc(taskRef, task);
+  await setDoc(taskRef, removeUndefinedFields(task));
 
   return mapFirestoreTask(taskId, task);
 }
@@ -118,15 +122,20 @@ export async function updateTaskInFirestore(
 ) {
   const taskRef = getUserTaskDoc(userId, taskId);
 
-  await updateDoc(taskRef, {
+  const updateData = removeUndefinedFields({
     ...input,
     title: input.title ? input.title.trim() : undefined,
+    fixedTimeLabel: input.hasFixedTime
+      ? input.fixedTimeLabel || "Fixed time"
+      : null,
     deadlineLabel:
       input.deadlineLabel !== undefined
         ? input.deadlineLabel || "No deadline"
         : undefined,
     updatedAt: serverTimestamp(),
   });
+
+  await updateDoc(taskRef, updateData);
 }
 
 export async function updateTaskStatusInFirestore(
