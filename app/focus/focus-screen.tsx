@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "lib/stores/auth-store";
 import { updateTaskStatusInFirestore } from "lib/firebase/task-service";
+import { createFocusSessionInFirestore } from "lib/firebase/focus-session-service";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -91,7 +92,7 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
     try {
       await updateTaskStatusInFirestore(user.uid, currentTask.id, "done");
 
-      addFocusSession({
+      await createFocusSessionInFirestore(user.uid, {
         taskId: currentTask.id,
         taskTitle: currentTask.title,
         minutes: sessionMinutes,

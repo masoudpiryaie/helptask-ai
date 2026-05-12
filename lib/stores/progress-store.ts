@@ -11,6 +11,10 @@ type AddFocusSessionInput = {
 
 type ProgressStore = {
   focusSessions: FocusSession[];
+  isProgressSyncReady: boolean;
+
+  setFocusSessions: (focusSessions: FocusSession[]) => void;
+  setIsProgressSyncReady: (isProgressSyncReady: boolean) => void;
 
   addFocusSession: (input: AddFocusSessionInput) => FocusSession;
   clearProgress: () => void;
@@ -28,6 +32,15 @@ export const useProgressStore = create<ProgressStore>()(
   persist(
     (set, get) => ({
       focusSessions: [],
+      isProgressSyncReady: false,
+
+      setFocusSessions: (focusSessions) => {
+        set({ focusSessions });
+      },
+
+      setIsProgressSyncReady: (isProgressSyncReady) => {
+        set({ isProgressSyncReady });
+      },
 
       addFocusSession: (input) => {
         const session: FocusSession = {

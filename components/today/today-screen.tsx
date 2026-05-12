@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "lib/stores/auth-store";
+import { saveTodayCheckInToFirestore } from "lib/firebase/today-service";
+import { saveCurrentPlanToFirestore } from "lib/firebase/ai-plan-service";
 import {
   ArrowRight,
   CalendarDays,
@@ -60,7 +63,7 @@ function getFocusMinutes(task: Task) {
 
 export function TodayScreen() {
   const router = useRouter();
-
+  const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
 
@@ -103,9 +106,17 @@ export function TodayScreen() {
     };
   }, [tasks, focusSessions]);
 
-  function handleBuildPlan() {
-    generatePlan(tasks);
-    router.push("/plan");
+  async function handleBuildPlan() {
+    if (!user) return;
+
+    const newPlan = generatePlan(tasks);
+
+    try {
+      await saveCurrentPlanToFirestore(user.uid, newPlan);
+      router.push("/plan");
+    } catch (error) {
+      console.error("Build plan error:", error);
+    }
   }
 
   function handleStartTask(task: Task) {
@@ -115,7 +126,33 @@ export function TodayScreen() {
     startFocusTask(task.id, minutes);
     router.push("/focus");
   }
+  async function handleEnergyChange(item: EnergyLevel) {
+    setEnergyLevel(item);
 
+    if (!user) return;
+
+    try {
+      await saveTodayCheckInToFirestore(user.uid, {
+        energyLevel: item,
+      });
+    } catch (error) {
+      console.error("Save energy error:", error);
+    }
+  }
+
+  async function handleMoodChange(item: Mood) {
+    setMood(item);
+
+    if (!user) return;
+
+    try {
+      await saveTodayCheckInToFirestore(user.uid, {
+        mood: item,
+      });
+    } catch (error) {
+      console.error("Save mood error:", error);
+    }
+  }
   return (
     <div className="px-5 pb-28 pt-6 text-[#1F2937]">
       <header className="mb-6">
@@ -176,7 +213,7 @@ export function TodayScreen() {
                   <button
                     key={item}
                     type="button"
-                    onClick={() => setEnergyLevel(item)}
+                    onClick={() => handleEnergyChange(item)}
                     className={`rounded-2xl border px-3 py-3 text-sm font-semibold ${
                       energyLevel === item
                         ? "border-[#4F8DFD] bg-[#EAF3FF] text-[#4F8DFD]"
@@ -197,7 +234,7 @@ export function TodayScreen() {
                   <button
                     key={item}
                     type="button"
-                    onClick={() => setMood(item)}
+                    onClick={() => handleMoodChange(item)}
                     className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold ${
                       mood === item
                         ? "border-[#A78BFA] bg-purple-50 text-[#7C3AED]"

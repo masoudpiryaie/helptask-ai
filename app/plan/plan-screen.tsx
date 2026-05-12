@@ -11,16 +11,20 @@ import {
   Sparkles,
   Wand2,
 } from "lucide-react";
+import { useAuthStore } from "lib/stores/auth-store";
 import { useTaskStore } from "lib/stores/task-store";
 import { usePlanStore } from "lib/stores/plan-store";
 import { useFocusStore } from "lib/stores/focus-store";
 import { generateLocalDailyPlan } from "lib/planner/local-ai-planner";
+import { saveCurrentPlanToFirestore } from "lib/firebase/ai-plan-service";
+import { updateTaskStatusInFirestore } from "lib/firebase/task-service";
 
 export function PlanScreen() {
   const router = useRouter();
 
+  const user = useAuthStore((state) => state.user);
+
   const tasks = useTaskStore((state) => state.tasks);
-  const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
 
   const currentPlan = usePlanStore((state) => state.currentPlan);
   const generatePlan = usePlanStore((state) => state.generatePlan);
@@ -35,21 +39,40 @@ export function PlanScreen() {
 
   const plan = currentPlan ?? previewPlan;
 
-  function handleRegenerate() {
+  async function handleRegenerate() {
+    if (!user) return;
+
     const newPlan = generatePlan(tasks);
 
-    if (newPlan.items.length > 0) {
-      setOpenItemId(newPlan.items[0].id);
+    try {
+      await saveCurrentPlanToFirestore(user.uid, newPlan);
+
+      if (newPlan.items.length > 0) {
+        setOpenItemId(newPlan.items[0].id);
+      }
+    } catch (error) {
+      console.error("Save regenerated plan error:", error);
     }
   }
 
-  function handleAcceptPlan() {
-    plan.items.forEach((item) => {
-      updateTaskStatus(item.taskId, "scheduled");
-    });
+  async function handleAcceptPlan() {
+    if (!user) return;
+    if (!plan || plan.items.length === 0) return;
+
+    try {
+      await Promise.all(
+        plan.items.map((item) =>
+          updateTaskStatusInFirestore(user.uid, item.taskId, "scheduled"),
+        ),
+      );
+    } catch (error) {
+      console.error("Accept plan error:", error);
+    }
   }
 
-  function handleMakeLighter() {
+  async function handleMakeLighter() {
+    if (!user) return;
+
     const lightTasks = tasks.filter(
       (task) =>
         task.status !== "done" &&
@@ -63,15 +86,27 @@ export function PlanScreen() {
       lightTasks.length > 0 ? lightTasks : tasks,
     );
 
-    if (lighterPlan.items.length > 0) {
-      setOpenItemId(lighterPlan.items[0].id);
+    try {
+      await saveCurrentPlanToFirestore(user.uid, lighterPlan);
+
+      if (lighterPlan.items.length > 0) {
+        setOpenItemId(lighterPlan.items[0].id);
+      }
+    } catch (error) {
+      console.error("Save lighter plan error:", error);
     }
   }
 
-  function handleStartPlanItem(taskId: string, minutes: number) {
-    updateTaskStatus(taskId, "started");
-    startFocusTask(taskId, minutes);
-    router.push("/focus");
+  async function handleStartPlanItem(taskId: string, minutes: number) {
+    if (!user) return;
+
+    try {
+      await updateTaskStatusInFirestore(user.uid, taskId, "started");
+      startFocusTask(taskId, minutes);
+      router.push("/focus");
+    } catch (error) {
+      console.error("Start plan item error:", error);
+    }
   }
 
   function toggleItem(itemId: string) {

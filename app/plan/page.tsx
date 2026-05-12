@@ -1,5 +1,5 @@
 import { MobileShell } from "components/layout/mobile-shell";
-import { PlanScreen } from "./plan-screen";
+import { PlanScreen } from "app/plan/plan-screen";
 
 export default function PlanPage() {
   return (

@@ -6,6 +6,10 @@ import { generateLocalDailyPlan } from "lib/planner/local-ai-planner";
 
 type PlanStore = {
   currentPlan: DailyPlan | null;
+  isPlanSyncReady: boolean;
+
+  setCurrentPlan: (plan: DailyPlan | null) => void;
+  setIsPlanSyncReady: (isPlanSyncReady: boolean) => void;
 
   generatePlan: (tasks: Task[]) => DailyPlan;
   clearPlan: () => void;
@@ -15,6 +19,19 @@ export const usePlanStore = create<PlanStore>()(
   persist(
     (set) => ({
       currentPlan: null,
+      isPlanSyncReady: false,
+
+      setCurrentPlan: (plan) => {
+        set({
+          currentPlan: plan,
+        });
+      },
+
+      setIsPlanSyncReady: (isPlanSyncReady) => {
+        set({
+          isPlanSyncReady,
+        });
+      },
 
       generatePlan: (tasks) => {
         const plan = generateLocalDailyPlan(tasks);
