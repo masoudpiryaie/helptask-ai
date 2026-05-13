@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "lib/stores/auth-store";
 import { saveTodayCheckInToFirestore } from "lib/firebase/today-service";
 import { saveCurrentPlanToFirestore } from "lib/firebase/ai-plan-service";
+import { generateAiPlan } from "lib/ai/generate-ai-plan";
+import Link from "next/link";
 import {
   ArrowRight,
   CalendarDays,
@@ -29,6 +31,7 @@ import {
 } from "lib/planner/next-best-task";
 import type { EnergyLevel, Mood } from "types/today";
 import type { Task } from "types/task";
+import { AiLoadingLogo } from "components/ui/ai-loading-logo";
 
 const energyOptions: EnergyLevel[] = ["Low", "Okay", "Good"];
 
@@ -66,12 +69,13 @@ export function TodayScreen() {
   const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
-
+  const wakeUpTime = useTodayStore((state) => state.wakeUpTime);
+  const sleepTime = useTodayStore((state) => state.sleepTime);
+  const setCurrentPlan = usePlanStore((state) => state.setCurrentPlan);
   const mood = useTodayStore((state) => state.mood);
   const energyLevel = useTodayStore((state) => state.energyLevel);
   const setMood = useTodayStore((state) => state.setMood);
   const setEnergyLevel = useTodayStore((state) => state.setEnergyLevel);
-
   const generatePlan = usePlanStore((state) => state.generatePlan);
   const startFocusTask = useFocusStore((state) => state.startFocusTask);
 
@@ -79,6 +83,7 @@ export function TodayScreen() {
 
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
+  const [isBuildingPlan, setIsBuildingPlan] = useState(false);
 
   const nextBestTask = useMemo(() => {
     return getNextBestTask(tasks, mood, energyLevel);
@@ -109,13 +114,36 @@ export function TodayScreen() {
   async function handleBuildPlan() {
     if (!user) return;
 
-    const newPlan = generatePlan(tasks);
+    setIsBuildingPlan(true);
 
     try {
-      await saveCurrentPlanToFirestore(user.uid, newPlan);
+      const result = await generateAiPlan({
+        tasks,
+        mood,
+        energyLevel,
+        wakeUpTime,
+        sleepTime,
+        weather: {
+          city: "Berlin",
+          condition: "Cloudy",
+          temperature: "8°C",
+        },
+      });
+
+      setCurrentPlan(result.plan);
+      await saveCurrentPlanToFirestore(user.uid, result.plan);
+
       router.push("/plan");
     } catch (error) {
-      console.error("Build plan error:", error);
+      console.error("Build AI plan error:", error);
+
+      const fallbackPlan = generatePlan(tasks);
+      setCurrentPlan(fallbackPlan);
+      await saveCurrentPlanToFirestore(user.uid, fallbackPlan);
+
+      router.push("/plan");
+    } finally {
+      setIsBuildingPlan(false);
     }
   }
 
@@ -169,9 +197,13 @@ export function TodayScreen() {
             </p>
           </div>
 
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+          <Link
+            href="/account"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-sm"
+            aria-label="Open account"
+          >
             <SunMedium size={22} className="text-[#FDBA74]" />
-          </div>
+          </Link>
         </div>
       </header>
 
@@ -208,7 +240,7 @@ export function TodayScreen() {
             <div>
               <p className="text-sm font-semibold">Energy</p>
 
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {energyOptions.map((item) => (
                   <button
                     key={item}
@@ -229,7 +261,7 @@ export function TodayScreen() {
             <div className="mt-5">
               <p className="text-sm font-semibold">Mood</p>
 
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {moodOptions.map((item) => (
                   <button
                     key={item}
@@ -250,7 +282,7 @@ export function TodayScreen() {
         ) : null}
       </section>
 
-      <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-4 shadow-sm">
+      {/* <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-4 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3FF]">
             <Cloud size={20} className="text-[#4F8DFD]" />
@@ -263,8 +295,16 @@ export function TodayScreen() {
             </p>
           </div>
         </div>
-      </section>
-
+      </section> */}
+      {isBuildingPlan ? (
+        <section className="mt-4 rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-sm">
+          <AiLoadingLogo
+            size="md"
+            label="AI is planning your day..."
+            sublabel="I am choosing a realistic next step for your current energy."
+          />
+        </section>
+      ) : null}
       <section className="mt-4 rounded-[32px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-50">
@@ -321,9 +361,10 @@ export function TodayScreen() {
               <button
                 type="button"
                 onClick={handleBuildPlan}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-[15px] font-semibold text-[#1F2937]"
+                disabled={isBuildingPlan}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-[15px] font-semibold text-[#1F2937] disabled:opacity-60"
               >
-                Plan day
+                {isBuildingPlan ? "Planning..." : "Plan day"}
                 <ArrowRight size={18} />
               </button>
             </div>

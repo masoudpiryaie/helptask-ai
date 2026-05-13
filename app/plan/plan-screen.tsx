@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { generateAiPlan } from "lib/ai/generate-ai-plan";
+import { useTodayStore } from "lib/stores/today-store";
+import { AiLoadingLogo } from "components/ui/ai-loading-logo";
 import {
   ArrowRight,
   CalendarCheck,
@@ -18,7 +21,7 @@ import { useFocusStore } from "lib/stores/focus-store";
 import { generateLocalDailyPlan } from "lib/planner/local-ai-planner";
 import { saveCurrentPlanToFirestore } from "lib/firebase/ai-plan-service";
 import { updateTaskStatusInFirestore } from "lib/firebase/task-service";
-
+import { useUiStore } from "lib/stores/ui-store";
 export function PlanScreen() {
   const router = useRouter();
 
@@ -33,6 +36,15 @@ export function PlanScreen() {
 
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
+  const mood = useTodayStore((state) => state.mood);
+  const energyLevel = useTodayStore((state) => state.energyLevel);
+  const wakeUpTime = useTodayStore((state) => state.wakeUpTime);
+  const sleepTime = useTodayStore((state) => state.sleepTime);
+
+  const setCurrentPlan = usePlanStore((state) => state.setCurrentPlan);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const showToast = useUiStore((state) => state.showToast);
   const previewPlan = useMemo(() => {
     return generateLocalDailyPlan(tasks);
   }, [tasks]);
@@ -42,16 +54,44 @@ export function PlanScreen() {
   async function handleRegenerate() {
     if (!user) return;
 
-    const newPlan = generatePlan(tasks);
+    setIsGenerating(true);
 
     try {
-      await saveCurrentPlanToFirestore(user.uid, newPlan);
+      const result = await generateAiPlan({
+        tasks,
+        mood,
+        energyLevel,
+        wakeUpTime,
+        sleepTime,
+        weather: {
+          city: "Berlin",
+          condition: "Cloudy",
+          temperature: "8°C",
+        },
+      });
 
-      if (newPlan.items.length > 0) {
-        setOpenItemId(newPlan.items[0].id);
+      setCurrentPlan(result.plan);
+      await saveCurrentPlanToFirestore(user.uid, result.plan);
+      showToast({
+        type: result.usedFallback ? "info" : "success",
+        message: result.usedFallback
+          ? "I made a simple plan because AI was not available."
+          : "Your AI plan is ready.",
+      });
+      if (result.plan.items.length > 0) {
+        setOpenItemId(result.plan.items[0].id);
       }
     } catch (error) {
-      console.error("Save regenerated plan error:", error);
+      console.error("Generate AI plan error:", error);
+      const fallbackPlan = generatePlan(tasks);
+      setCurrentPlan(fallbackPlan);
+      await saveCurrentPlanToFirestore(user.uid, fallbackPlan);
+      showToast({
+        type: "info",
+        message: "I made a simple plan so you can still start.",
+      });
+    } finally {
+      setIsGenerating(false);
     }
   }
 
@@ -65,13 +105,23 @@ export function PlanScreen() {
           updateTaskStatusInFirestore(user.uid, item.taskId, "scheduled"),
         ),
       );
+      showToast({
+        type: "success",
+        message: "Plan accepted. Your tasks are scheduled.",
+      });
     } catch (error) {
+      showToast({
+        type: "error",
+        message: "Could not accept the plan. Please try again.",
+      });
       console.error("Accept plan error:", error);
     }
   }
 
   async function handleMakeLighter() {
     if (!user) return;
+
+    setIsGenerating(true);
 
     const lightTasks = tasks.filter(
       (task) =>
@@ -94,6 +144,8 @@ export function PlanScreen() {
       }
     } catch (error) {
       console.error("Save lighter plan error:", error);
+    } finally {
+      setIsGenerating(false);
     }
   }
 
@@ -126,7 +178,30 @@ export function PlanScreen() {
           A calm plan made from your tasks and current energy.
         </p>
       </header>
+      {isGenerating ? (
+        <section className="mb-5 rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-sm">
+          <AiLoadingLogo
+            size="md"
+            label="AI is building a calm plan..."
+            sublabel="Checking your tasks, energy, mood, and realistic time blocks."
+          />
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+              <Sparkles size={22} className="animate-pulse text-[#4F8DFD]" />
+            </div>
 
+            <div>
+              <h2 className="text-lg font-semibold">
+                AI is building a calm plan...
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+                I am checking your tasks, energy, mood, and realistic time
+                blocks.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
       {plan.items.length === 0 ? (
         <section className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF]">
@@ -143,9 +218,10 @@ export function PlanScreen() {
           <button
             type="button"
             onClick={handleRegenerate}
-            className="mt-5 rounded-2xl bg-[#4F8DFD] px-5 py-3 text-sm font-semibold text-white"
+            disabled={isGenerating}
+            className="mt-5 rounded-2xl bg-[#4F8DFD] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           >
-            Build today&apos;s plan
+            {isGenerating ? "Building plan..." : "Build today&apos;s plan"}
           </button>
         </section>
       ) : (
@@ -265,19 +341,24 @@ export function PlanScreen() {
               <button
                 type="button"
                 onClick={handleMakeLighter}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-sm font-semibold text-[#1F2937] shadow-sm"
+                disabled={isGenerating}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-sm font-semibold text-[#1F2937] shadow-sm disabled:opacity-60"
               >
                 <Wand2 size={17} />
-                Lighter
+                {isGenerating ? "Adjusting..." : "Lighter"}
               </button>
 
               <button
                 type="button"
                 onClick={handleRegenerate}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-sm font-semibold text-[#1F2937] shadow-sm"
+                disabled={isGenerating}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-sm font-semibold text-[#1F2937] shadow-sm disabled:opacity-60"
               >
-                <RefreshCw size={17} />
-                Regenerate
+                <RefreshCw
+                  size={17}
+                  className={isGenerating ? "animate-spin" : ""}
+                />
+                {isGenerating ? "Thinking..." : "Regenerate"}
               </button>
             </div>
           </section>

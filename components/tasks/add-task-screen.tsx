@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "lib/stores/auth-store";
 import { createTaskInFirestore } from "lib/firebase/task-service";
 import Link from "next/link";
+import { useUiStore } from "lib/stores/ui-store";
 import {
   ArrowLeft,
   Calendar,
@@ -20,6 +21,7 @@ import type {
   TaskEnergy,
   TaskPriority,
 } from "types/task";
+import { AiLoadingLogo } from "components/ui/ai-loading-logo";
 
 const categories: TaskCategory[] = [
   "Study",
@@ -80,6 +82,10 @@ export function AddTaskScreen() {
   const [energyNeeded, setEnergyNeeded] = useState<TaskEnergy>("Medium");
   const [priority, setPriority] = useState<TaskPriority>("Normal");
   const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAiScheduling, setIsAiScheduling] = useState(false);
+  const showToast = useUiStore((state) => state.showToast);
+
   const user = useAuthStore((state) => state.user);
   function getFinalDuration() {
     if (!isCustomDuration) {
@@ -105,7 +111,8 @@ export function AddTaskScreen() {
       setError("Please wait a moment and try again.");
       return;
     }
-
+    setIsSaving(true);
+    setIsAiScheduling(scheduleWithAI);
     const finalDuration = getFinalDuration();
 
     const input = {
@@ -130,8 +137,18 @@ export function AddTaskScreen() {
 
     try {
       await createTaskInFirestore(user.uid, input);
+      showToast({
+        type: "success",
+        message: scheduleWithAI
+          ? "Task saved. AI will use it in your plan."
+          : "Task saved.",
+      });
       router.push("/tasks");
     } catch (error) {
+      showToast({
+        type: "error",
+        message: "Could not save this task. Please try again.",
+      });
       console.error("Create task error:", error);
       setError("Could not save this task. Please try again.");
     }
@@ -395,23 +412,51 @@ export function AddTaskScreen() {
         </div>
       </section>
 
-      <section className="mt-5 grid gap-3">
-        <button
-          type="button"
-          onClick={() => handleSave(false)}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm"
-        >
-          <Check size={18} />
-          Save task
-        </button>
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-4 shadow-sm">
+        {isAiScheduling ? (
+          <div className="mb-4 rounded-[24px] border border-[#EAF3FF] bg-[#F8FAFC] p-5">
+            <AiLoadingLogo
+              size="sm"
+              label="AI is preparing this task..."
+              sublabel="I am making it easier to schedule later."
+            />
+          </div>
+        ) : null}
 
-        <button
-          type="button"
-          onClick={() => handleSave(true)}
-          className="rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 text-[15px] font-semibold text-[#1F2937] shadow-sm"
-        >
-          Save and let AI schedule it
-        </button>
+        <div className="grid gap-3">
+          <button
+            type="button"
+            onClick={() => handleSave(false)}
+            disabled={isSaving}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Check size={18} />
+            {isSaving && !isAiScheduling ? "Saving..." : "Save task"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSave(true)}
+            disabled={isSaving}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 text-[15px] font-semibold text-[#1F2937] shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Sparkles
+              size={18}
+              className={
+                isAiScheduling
+                  ? "animate-pulse text-[#4F8DFD]"
+                  : "text-[#4F8DFD]"
+              }
+            />
+            {isAiScheduling
+              ? "AI is helping..."
+              : "Save and let AI schedule it"}
+          </button>
+        </div>
+
+        <p className="mt-3 text-center text-xs leading-5 text-[#6B7280]">
+          You can edit this task anytime.
+        </p>
       </section>
     </main>
   );

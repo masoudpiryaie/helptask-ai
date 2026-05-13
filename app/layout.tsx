@@ -7,7 +7,7 @@ import { FirebaseTaskSyncProvider } from "components/providers/firebase-task-syn
 import { FirebaseProgressSyncProvider } from "components/providers/firebase-progress-sync-provider";
 import { FirebasePlanSyncProvider } from "components/providers/firebase-plan-sync-provider";
 import { SyncGate } from "components/providers/sync-gate";
-
+import { AppToast } from "components/ui/app-toast";
 export const metadata: Metadata = {
   title: "MindTask AI",
   description: "Plan smarter. Start smaller.",
@@ -26,7 +26,10 @@ export default function RootLayout({
             <FirebaseTaskSyncProvider>
               <FirebaseProgressSyncProvider>
                 <FirebasePlanSyncProvider>
-                  <SyncGate>{children}</SyncGate>
+                  <SyncGate>
+                    {children}
+                    <AppToast />
+                  </SyncGate>
                 </FirebasePlanSyncProvider>
               </FirebaseProgressSyncProvider>
             </FirebaseTaskSyncProvider>

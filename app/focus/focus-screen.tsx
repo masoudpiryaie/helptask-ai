@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "lib/stores/auth-store";
 import { updateTaskStatusInFirestore } from "lib/firebase/task-service";
 import { createFocusSessionInFirestore } from "lib/firebase/focus-session-service";
+import { useUiStore } from "lib/stores/ui-store";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -44,7 +45,7 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
   const setSessionMinutes = useFocusStore((state) => state.setSessionMinutes);
 
   const addFocusSession = useProgressStore((state) => state.addFocusSession);
-
+  const showToast = useUiStore((state) => state.showToast);
   const initialSeconds = sessionMinutes * 60;
 
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
@@ -98,10 +99,17 @@ function FocusTimer({ currentTask, sessionMinutes }: FocusTimerProps) {
         minutes: sessionMinutes,
         feedback: focusFeedback || undefined,
       });
-
+      showToast({
+        type: "success",
+        message: "Nice. This focus session counts.",
+      });
       setIsRunning(false);
       clearFocusTask();
     } catch (error) {
+      showToast({
+        type: "error",
+        message: "Could not save this focus session.",
+      });
       console.error("Finish focus error:", error);
     }
   }

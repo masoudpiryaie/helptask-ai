@@ -16,15 +16,18 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-      try {
-        if (!user) {
-          await signInAnonymously(firebaseAuth);
-          return;
-        }
-
+      if (user) {
         setUser(user);
+        setIsAuthReady(true);
+        return;
+      }
+
+      try {
+        const credential = await signInAnonymously(firebaseAuth);
+        setUser(credential.user);
       } catch (error) {
-        console.error("Firebase auth error:", error);
+        console.error("Firebase anonymous auth error:", error);
+        setUser(null);
       } finally {
         setIsAuthReady(true);
       }

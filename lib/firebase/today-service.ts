@@ -43,7 +43,10 @@ export async function saveTodayCheckInToFirestore(
   await setDoc(
     todayRef,
     {
-      ...input,
+      mood: input.mood ?? "Calm",
+      energyLevel: input.energyLevel ?? "Okay",
+      wakeUpTime: input.wakeUpTime ?? "08:00",
+      sleepTime: input.sleepTime ?? "23:30",
       updatedAt: serverTimestamp(),
     },
     {
