@@ -35,14 +35,14 @@ export function SyncGate({ children }: SyncGateProps) {
           <div className="px-6">
             <AiLoadingLogo
               size="lg"
-              label="MindTask AI"
+              label="Task AI"
               sublabel="Preparing your calm workspace."
             />{" "}
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white shadow-sm">
               <Sparkles size={28} className="text-[#4F8DFD]" />
             </div>
             <h1 className="mt-6 text-2xl font-bold tracking-[-0.03em]">
-              MindTask AI
+              Task AI
             </h1>
             <p className="mt-3 text-sm leading-6 text-[#6B7280]">
               Preparing your calm workspace.

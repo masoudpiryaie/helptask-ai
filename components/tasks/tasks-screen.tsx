@@ -203,7 +203,7 @@ export function TasksScreen() {
       <header className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+            <p className="text-sm font-medium text-[#4F8DFD]">Task AI</p>
 
             <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
               My Tasks

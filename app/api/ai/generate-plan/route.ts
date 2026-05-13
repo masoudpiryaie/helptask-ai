@@ -126,7 +126,7 @@ function buildPrompt(input: GenerateAiPlanRequest) {
   );
 
   return `
-You are MindTask AI, a calm and supportive AI task planner.
+You are Task AI, a calm and supportive AI task planner.
 
 App personality:
 - Calm, smart, supportive

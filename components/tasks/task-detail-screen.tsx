@@ -161,7 +161,7 @@ export function TaskDetailScreen({ taskId }: TaskDetailScreenProps) {
           <ArrowLeft size={20} />
         </Link>
 
-        <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+        <p className="text-sm font-medium text-[#4F8DFD]">Task AI</p>
 
         <div className="mt-3 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">

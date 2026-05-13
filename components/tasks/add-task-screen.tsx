@@ -165,7 +165,7 @@ export function AddTaskScreen() {
           <ArrowLeft size={20} />
         </Link>
 
-        <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+        <p className="text-sm font-medium text-[#4F8DFD]">Task AI</p>
         <h1 className="mt-1 text-[30px] font-bold tracking-[-0.03em]">
           Add a new task
         </h1>

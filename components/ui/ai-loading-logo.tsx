@@ -29,7 +29,7 @@ const sizeClasses = {
 
 export function AiLoadingLogo({
   size = "md",
-  label = "MindTask AI",
+  label = "Task AI",
   sublabel = "Thinking gently...",
 }: AiLoadingLogoProps) {
   const classes = sizeClasses[size];

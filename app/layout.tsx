@@ -9,7 +9,7 @@ import { FirebasePlanSyncProvider } from "components/providers/firebase-plan-syn
 import { SyncGate } from "components/providers/sync-gate";
 import { AppToast } from "components/ui/app-toast";
 export const metadata: Metadata = {
-  title: "MindTask AI",
+  title: "Task AI",
   description: "Plan smarter. Start smaller.",
 };
 

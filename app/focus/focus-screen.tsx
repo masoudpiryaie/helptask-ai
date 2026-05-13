@@ -312,7 +312,7 @@ export function FocusScreen() {
     return (
       <div className="px-5 pb-28 pt-6 text-[#1F2937]">
         <header className="mb-6">
-          <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+          <p className="text-sm font-medium text-[#4F8DFD]">Task AI</p>
 
           <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
             Focus Mode
@@ -356,7 +356,7 @@ export function FocusScreen() {
           <ArrowLeft size={20} />
         </Link>
 
-        <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+        <p className="text-sm font-medium text-[#4F8DFD]">Task AI</p>
 
         <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
           Focus Mode

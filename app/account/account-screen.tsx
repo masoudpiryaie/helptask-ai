@@ -99,7 +99,7 @@ export function AccountScreen() {
           <ArrowLeft size={20} />
         </Link>
 
-        <p className="text-sm font-medium text-[#4F8DFD]">MindTask AI</p>
+        <p className="text-sm font-medium text-[#4F8DFD]">Task AI</p>
 
         <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em]">
           Account
@@ -121,7 +121,7 @@ export function AccountScreen() {
 
             <p className="mt-1 text-sm leading-6 text-[#6B7280]">
               {isAnonymous
-                ? "You are using MindTask AI as a guest."
+                ? "You are using Task AI as a guest."
                 : "Your account is connected with Google."}
             </p>
           </div>
