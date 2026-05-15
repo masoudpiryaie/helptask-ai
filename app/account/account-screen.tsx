@@ -74,9 +74,12 @@ export function AccountScreen() {
     } catch (error) {
       console.error("Google sign-in error:", error);
 
+      const message =
+        error instanceof Error ? error.message : "Unknown Google sign-in error";
+
       showToast({
         type: "error",
-        message: "Could not sign in with Google. Please try again.",
+        message,
       });
     } finally {
       setIsLoading(false);
