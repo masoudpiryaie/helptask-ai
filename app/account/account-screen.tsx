@@ -57,14 +57,24 @@ export function AccountScreen() {
 
     try {
       if (user && user.isAnonymous) {
-        await linkAnonymousUserWithGoogle(user);
+        const result = await linkAnonymousUserWithGoogle(user);
+
+        if (result.accessToken) {
+          setGoogleAccessToken(result.accessToken);
+        }
 
         showToast({
           type: "success",
-          message: "Your guest data is now connected to Google.",
+          message: result.linked
+            ? "Your guest data is now connected to Google."
+            : "Signed in with your existing Google account.",
         });
       } else {
-        await signInWithGoogle();
+        const result = await signInWithGoogle();
+
+        if (result.accessToken) {
+          setGoogleAccessToken(result.accessToken);
+        }
 
         showToast({
           type: "success",
@@ -75,7 +85,12 @@ export function AccountScreen() {
       console.error("Google sign-in error:", error);
 
       const message =
-        error instanceof Error ? error.message : "Unknown Google sign-in error";
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof (error as { code?: string }).code === "string"
+          ? (error as { code: string }).code
+          : "Could not sign in with Google. Please try again.";
 
       showToast({
         type: "error",
@@ -119,7 +134,9 @@ export function AccountScreen() {
 
         showToast({
           type: "success",
-          message: "Google Calendar connected.",
+          message: result.linked
+            ? "Google Calendar connected."
+            : "Signed in with your existing Google account and Calendar connected.",
         });
       } else {
         showToast({
@@ -151,7 +168,9 @@ export function AccountScreen() {
 
         showToast({
           type: "success",
-          message: "Gmail connected.",
+          message: result.linked
+            ? "Gmail connected."
+            : "Signed in with your existing Google account and Gmail connected.",
         });
       } else {
         showToast({

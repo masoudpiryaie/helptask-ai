@@ -4,8 +4,15 @@ import {
   signInWithPopup,
   signOut,
   type User,
+  type UserCredential,
 } from "firebase/auth";
 import { firebaseAuth } from "lib/firebase/firebase-client";
+
+type AuthResult = {
+  user: User;
+  accessToken: string | null;
+  linked: boolean;
+};
 
 function createGoogleProvider(scopes: string[] = []) {
   const provider = new GoogleAuthProvider();
@@ -21,84 +28,93 @@ function createGoogleProvider(scopes: string[] = []) {
   return provider;
 }
 
-function getGoogleAccessToken(
-  result: Awaited<ReturnType<typeof signInWithPopup>>,
-) {
+function getGoogleAccessToken(result: UserCredential) {
   const credential = GoogleAuthProvider.credentialFromResult(result);
 
   return credential?.accessToken || null;
 }
 
-export async function signInWithGoogle() {
-  const provider = createGoogleProvider();
+function isFirebaseAuthError(error: unknown, code: string) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === code
+  );
+}
+
+async function signInWithGoogleProvider(
+  scopes: string[] = [],
+): Promise<AuthResult> {
+  const provider = createGoogleProvider(scopes);
   const result = await signInWithPopup(firebaseAuth, provider);
 
   return {
     user: result.user,
     accessToken: getGoogleAccessToken(result),
+    linked: false,
   };
 }
 
-export async function linkAnonymousUserWithGoogle(user: User) {
-  const provider = createGoogleProvider();
-  const result = await linkWithPopup(user, provider);
+async function linkOrSignInWithGoogleProvider(
+  user: User | null,
+  scopes: string[] = [],
+): Promise<AuthResult> {
+  const provider = createGoogleProvider(scopes);
 
-  const credential = GoogleAuthProvider.credentialFromResult(result);
-
-  return {
-    user: result.user,
-    accessToken: credential?.accessToken || null,
-  };
-}
-
-export async function connectGoogleCalendar(user: User | null) {
-  const provider = createGoogleProvider([
-    "https://www.googleapis.com/auth/calendar.readonly",
-  ]);
-
-  if (user?.isAnonymous) {
-    const result = await linkWithPopup(user, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
+  if (!user || !user.isAnonymous) {
+    const result = await signInWithPopup(firebaseAuth, provider);
 
     return {
       user: result.user,
-      accessToken: credential?.accessToken || null,
+      accessToken: getGoogleAccessToken(result),
+      linked: false,
     };
   }
 
-  const result = await signInWithPopup(firebaseAuth, provider);
-  const credential = GoogleAuthProvider.credentialFromResult(result);
+  try {
+    const result = await linkWithPopup(user, provider);
 
-  return {
-    user: result.user,
-    accessToken: credential?.accessToken || null,
-  };
+    return {
+      user: result.user,
+      accessToken: getGoogleAccessToken(result),
+      linked: true,
+    };
+  } catch (error) {
+    if (isFirebaseAuthError(error, "auth/credential-already-in-use")) {
+      const result = await signInWithPopup(firebaseAuth, provider);
+
+      return {
+        user: result.user,
+        accessToken: getGoogleAccessToken(result),
+        linked: false,
+      };
+    }
+
+    throw error;
+  }
+}
+
+export async function signInWithGoogle() {
+  return signInWithGoogleProvider();
+}
+
+export async function linkAnonymousUserWithGoogle(user: User) {
+  return linkOrSignInWithGoogleProvider(user);
+}
+
+export async function connectGoogleCalendar(user: User | null) {
+  return linkOrSignInWithGoogleProvider(user, [
+    "https://www.googleapis.com/auth/calendar.readonly",
+  ]);
+}
+
+export async function connectGmail(user: User | null) {
+  return linkOrSignInWithGoogleProvider(user, [
+    "https://www.googleapis.com/auth/gmail.send",
+  ]);
 }
 
 export async function signOutUser() {
   await signOut(firebaseAuth);
-}
-
-export async function connectGmail(user: User | null) {
-  const provider = createGoogleProvider([
-    "https://www.googleapis.com/auth/gmail.send",
-  ]);
-
-  if (user?.isAnonymous) {
-    const result = await linkWithPopup(user, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-
-    return {
-      user: result.user,
-      accessToken: credential?.accessToken || null,
-    };
-  }
-
-  const result = await signInWithPopup(firebaseAuth, provider);
-  const credential = GoogleAuthProvider.credentialFromResult(result);
-
-  return {
-    user: result.user,
-    accessToken: credential?.accessToken || null,
-  };
 }
