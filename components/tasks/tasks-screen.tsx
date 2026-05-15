@@ -5,11 +5,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "lib/stores/auth-store";
 import { CalendarDays } from "lucide-react";
-import { fetchCalendarEvents } from "lib/google/fetch-calendar-events";
 import { calendarEventToTask } from "lib/google/calendar-to-task";
 import { upsertCalendarTaskInFirestore } from "lib/firebase/task-service";
 import { useUiStore } from "lib/stores/ui-store";
-
+import {
+  connectGoogleCalendar,
+  connectGoogleCalendarByRedirect,
+  getFirebaseErrorCode,
+} from "lib/firebase/auth-service";
+import {
+  CalendarFetchError,
+  fetchCalendarEvents,
+} from "lib/google/fetch-calendar-events";
 import {
   deleteTaskFromFirestore,
   updateTaskStatusInFirestore,
@@ -144,6 +151,12 @@ export function TasksScreen() {
   const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
   const googleAccessToken = useAuthStore((state) => state.googleAccessToken);
+  const setGoogleAccessToken = useAuthStore(
+    (state) => state.setGoogleAccessToken,
+  );
+  const setIsCalendarConnected = useAuthStore(
+    (state) => state.setIsCalendarConnected,
+  );
   const showToast = useUiStore((state) => state.showToast);
 
   const [isImportingCalendar, setIsImportingCalendar] = useState(false);
@@ -216,19 +229,20 @@ export function TasksScreen() {
       return;
     }
 
-    if (!googleAccessToken) {
-      showToast({
-        type: "info",
-        message: "Please connect Google Calendar from Account first.",
-      });
-      router.push("/account");
-      return;
-    }
-
     setIsImportingCalendar(true);
 
     try {
-      const events = await fetchCalendarEvents(googleAccessToken);
+      const calendarToken = await getCalendarAccessToken();
+
+      if (!calendarToken) {
+        showToast({
+          type: "info",
+          message: "Please finish Google Calendar connection first.",
+        });
+        return;
+      }
+
+      const events = await fetchCalendarEvents(calendarToken);
 
       const tasksFromCalendar = events
         .filter((event) => event.id)
@@ -250,6 +264,21 @@ export function TasksScreen() {
     } catch (error) {
       console.error("Import calendar error:", error);
 
+      if (
+        error instanceof CalendarFetchError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        setGoogleAccessToken(null);
+        setIsCalendarConnected(false);
+
+        showToast({
+          type: "info",
+          message: "Please reconnect Google Calendar and try again.",
+        });
+
+        return;
+      }
+
       showToast({
         type: "error",
         message: "Could not import Calendar events.",
@@ -258,7 +287,32 @@ export function TasksScreen() {
       setIsImportingCalendar(false);
     }
   }
+  async function getCalendarAccessToken() {
+    if (googleAccessToken) {
+      return googleAccessToken;
+    }
 
+    try {
+      const result = await connectGoogleCalendar();
+
+      if (result.accessToken) {
+        setGoogleAccessToken(result.accessToken);
+        setIsCalendarConnected(true);
+        return result.accessToken;
+      }
+
+      return null;
+    } catch (error) {
+      const errorCode = getFirebaseErrorCode(error);
+
+      if (errorCode === "auth/popup-blocked") {
+        await connectGoogleCalendarByRedirect();
+        return null;
+      }
+
+      throw error;
+    }
+  }
   return (
     <div className="px-5 pb-28 pt-6 text-[#1F2937]">
       <header className="mb-6">

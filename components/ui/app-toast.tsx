@@ -37,7 +37,7 @@ export function AppToast() {
 
     const timeout = window.setTimeout(() => {
       hideToast();
-    }, 2800);
+    }, 3800);
 
     return () => window.clearTimeout(timeout);
   }, [toast, hideToast]);

@@ -4,6 +4,18 @@ type FetchCalendarEventsResponse = {
   events: GoogleCalendarEvent[];
 };
 
+export class CalendarFetchError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(status: number, data: unknown) {
+    super(`Could not fetch calendar events. Status: ${status}`);
+    this.name = "CalendarFetchError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
 export async function fetchCalendarEvents(accessToken: string) {
   const response = await fetch("/api/google/calendar/events", {
     method: "POST",
@@ -27,11 +39,8 @@ export async function fetchCalendarEvents(accessToken: string) {
   if (!response.ok) {
     console.error("Calendar fetch failed status:", response.status);
     console.error("Calendar fetch failed data:", data);
-    console.error("Calendar fetch failed raw text:", responseText);
 
-    throw new Error(
-      `Could not fetch calendar events. Status: ${response.status}`,
-    );
+    throw new CalendarFetchError(response.status, data);
   }
 
   const parsedData = data as FetchCalendarEventsResponse;
