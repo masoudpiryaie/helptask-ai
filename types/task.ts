@@ -13,11 +13,14 @@ export type TaskStatus =
   | "started"
   | "done"
   | "skipped";
+
 export type TaskPriority = "Low" | "Normal" | "High" | "Urgent";
 
 export type TaskDifficulty = "Easy" | "Medium" | "Hard";
 
 export type TaskEnergy = "Low" | "Medium" | "High";
+
+export type TaskSource = "manual" | "google_calendar" | "gmail";
 
 export type Task = {
   id: string;
@@ -33,6 +36,14 @@ export type Task = {
   priority: TaskPriority;
   aiSuggestion?: string;
   createdAt: string;
+
+  source?: TaskSource;
+  externalId?: string;
+  sourceUrl?: string;
+  isEmailTask?: boolean;
+  recipientEmail?: string;
+  emailSubject?: string;
+  emailDraft?: string;
 };
 
 export type NewTaskInput = {
@@ -46,4 +57,12 @@ export type NewTaskInput = {
   energyNeeded: TaskEnergy;
   priority: TaskPriority;
   aiSuggestion?: string;
+
+  source?: TaskSource;
+  externalId?: string;
+  sourceUrl?: string;
+  isEmailTask?: boolean;
+  recipientEmail?: string;
+  emailSubject?: string;
+  emailDraft?: string;
 };

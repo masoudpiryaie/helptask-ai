@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "lib/stores/auth-store";
@@ -11,9 +12,11 @@ import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Flame,
   Gauge,
+  Mail,
   Pencil,
   Play,
   Sparkles,
@@ -23,6 +26,7 @@ import {
 import { useTaskStore } from "lib/stores/task-store";
 import { useFocusStore } from "lib/stores/focus-store";
 import type { Task, TaskStatus } from "types/task";
+import { EmailAssistantCard } from "components/tasks/email-assistant-card";
 
 type TaskDetailScreenProps = {
   taskId: string;
@@ -57,10 +61,9 @@ export function TaskDetailScreen({ taskId }: TaskDetailScreenProps) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
-  const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
-  const deleteTask = useTaskStore((state) => state.deleteTask);
-
   const startFocusTask = useFocusStore((state) => state.startFocusTask);
+
+  const [isEmailOpen, setIsEmailOpen] = useState(false);
 
   const task = tasks.find((item) => item.id === taskId);
 
@@ -256,63 +259,120 @@ export function TaskDetailScreen({ taskId }: TaskDetailScreenProps) {
         </section>
       ) : null}
 
-      <section className="mt-5 grid gap-3">
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsEmailOpen((value) => !value)}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F8FAFC] text-[#4F8DFD]"
+            aria-label="Open email assistant"
+          >
+            <Mail size={20} />
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Email assistant</p>
+            <p className="truncate text-xs text-[#6B7280]">
+              Create or send email for this task
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsEmailOpen((value) => !value)}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F8FAFC] text-[#6B7280]"
+            aria-label="Toggle email assistant"
+          >
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                isEmailOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+        </div>
+
+        {isEmailOpen ? (
+          <div className="mt-4">
+            <EmailAssistantCard task={task} />
+          </div>
+        ) : null}
+      </section>
+
+      <section className="mt-5">
         {isDone ? (
           <button
             type="button"
             onClick={() => handleUndoDone(task)}
-            className="rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white"
+            className="w-full rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm"
           >
             Undo done
           </button>
         ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => handleStartTask(task)}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white"
-            >
-              <Play size={18} />
-              {task.status === "started" ? "Continue focus" : "Start focus"}
-            </button>
+          <button
+            type="button"
+            onClick={() => handleStartTask(task)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm"
+          >
+            <Play size={18} />
+            {task.status === "started" ? "Continue focus" : "Start focus"}
+          </button>
+        )}
 
+        {!isDone ? (
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => handleMarkDone(task)}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 text-[15px] font-semibold text-[#1F2937]"
+              className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#1F2937]"
             >
-              <CheckCircle2 size={18} />
-              Mark as done
+              <CheckCircle2 size={17} />
+              Done
             </button>
 
             {!task.hasFixedTime && task.status !== "scheduled" ? (
               <button
                 type="button"
                 onClick={() => handleScheduleTask(task)}
-                className="rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 text-[15px] font-semibold text-[#1F2937]"
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#1F2937]"
               >
-                Schedule task
+                <Calendar size={17} />
+                Schedule
               </button>
-            ) : null}
-          </>
-        )}
+            ) : (
+              <Link
+                href={`/tasks/${task.id}/edit`}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#1F2937]"
+              >
+                <Pencil size={17} />
+                Edit
+              </Link>
+            )}
+          </div>
+        ) : null}
 
-        <Link
-          href={`/tasks/${task.id}/edit`}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 text-[15px] font-semibold text-[#1F2937]"
-        >
-          <Pencil size={18} />
-          Edit task
-        </Link>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          {!isDone ? (
+            <Link
+              href={`/tasks/${task.id}/edit`}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#1F2937]"
+            >
+              <Pencil size={17} />
+              Edit
+            </Link>
+          ) : null}
 
-        <button
-          type="button"
-          onClick={() => handleDelete(task)}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-[15px] font-semibold text-red-500"
-        >
-          <Trash2 size={18} />
-          Delete task
-        </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(task)}
+            className={`flex items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm font-semibold text-red-500 ${
+              isDone ? "col-span-2" : ""
+            }`}
+          >
+            <Trash2 size={17} />
+            Delete
+          </button>
+        </div>
       </section>
     </div>
   );

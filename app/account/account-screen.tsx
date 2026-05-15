@@ -3,16 +3,20 @@
 import Link from "next/link";
 import {
   ArrowLeft,
+  CalendarDays,
   LogOut,
   ShieldCheck,
   Sparkles,
   UserRound,
+  Mail,
 } from "lucide-react";
 import { useAuthStore } from "lib/stores/auth-store";
 import {
+  connectGoogleCalendar,
   linkAnonymousUserWithGoogle,
   signInWithGoogle,
   signOutUser,
+  connectGmail,
 } from "lib/firebase/auth-service";
 import { useUiStore } from "lib/stores/ui-store";
 import { useState } from "react";
@@ -30,7 +34,20 @@ function getUserName(user: ReturnType<typeof useAuthStore.getState>["user"]) {
 export function AccountScreen() {
   const user = useAuthStore((state) => state.user);
   const showToast = useUiStore((state) => state.showToast);
+  const setGoogleAccessToken = useAuthStore(
+    (state) => state.setGoogleAccessToken,
+  );
+  const setIsCalendarConnected = useAuthStore(
+    (state) => state.setIsCalendarConnected,
+  );
+  const isCalendarConnected = useAuthStore(
+    (state) => state.isCalendarConnected,
+  );
 
+  const setIsGmailConnected = useAuthStore(
+    (state) => state.setIsGmailConnected,
+  );
+  const isGmailConnected = useAuthStore((state) => state.isGmailConnected);
   const [isLoading, setIsLoading] = useState(false);
 
   const isAnonymous = Boolean(user?.isAnonymous);
@@ -82,6 +99,69 @@ export function AccountScreen() {
       showToast({
         type: "error",
         message: "Could not sign out. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+  async function handleConnectCalendar() {
+    setIsLoading(true);
+
+    try {
+      const result = await connectGoogleCalendar(user);
+
+      if (result.accessToken) {
+        setGoogleAccessToken(result.accessToken);
+        setIsCalendarConnected(true);
+
+        showToast({
+          type: "success",
+          message: "Google Calendar connected.",
+        });
+      } else {
+        showToast({
+          type: "error",
+          message: "Calendar connected, but no access token was returned.",
+        });
+      }
+    } catch (error) {
+      console.error("Connect calendar error:", error);
+
+      showToast({
+        type: "error",
+        message: "Could not connect Google Calendar.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleConnectGmail() {
+    setIsLoading(true);
+
+    try {
+      const result = await connectGmail(user);
+
+      if (result.accessToken) {
+        setGoogleAccessToken(result.accessToken);
+        setIsGmailConnected(true);
+
+        showToast({
+          type: "success",
+          message: "Gmail connected.",
+        });
+      } else {
+        showToast({
+          type: "error",
+          message: "Gmail connected, but no access token was returned.",
+        });
+      }
+    } catch (error) {
+      console.error("Connect Gmail error:", error);
+
+      showToast({
+        type: "error",
+        message: "Could not connect Gmail.",
       });
     } finally {
       setIsLoading(false);
@@ -139,7 +219,58 @@ export function AccountScreen() {
           </div>
         </div>
       </section>
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+            <CalendarDays size={22} className="text-[#4F8DFD]" />
+          </div>
 
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold">Google Calendar</h2>
+
+            <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+              {isCalendarConnected
+                ? "Calendar is connected. You can import events as fixed tasks."
+                : "Connect Calendar to turn classes, meetings, and appointments into tasks."}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleConnectCalendar}
+              disabled={isLoading}
+              className="mt-4 w-full rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm disabled:opacity-60"
+            >
+              {isCalendarConnected ? "Reconnect Calendar" : "Connect Calendar"}
+            </button>
+          </div>
+        </div>
+      </section>
+      <section className="mt-5 rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+            <Mail size={22} className="text-[#4F8DFD]" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold">Gmail</h2>
+
+            <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+              {isGmailConnected
+                ? "Gmail is connected. You can send AI-assisted email drafts."
+                : "Connect Gmail to send email drafts after you review them."}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleConnectGmail}
+              disabled={isLoading}
+              className="mt-4 w-full rounded-2xl bg-[#4F8DFD] px-5 py-4 text-[15px] font-semibold text-white shadow-sm disabled:opacity-60"
+            >
+              {isGmailConnected ? "Reconnect Gmail" : "Connect Gmail"}
+            </button>
+          </div>
+        </div>
+      </section>
       <section className="mt-5 grid gap-3">
         {isAnonymous ? (
           <button

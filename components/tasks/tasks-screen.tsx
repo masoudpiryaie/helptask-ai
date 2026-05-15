@@ -4,6 +4,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "lib/stores/auth-store";
+import { CalendarDays } from "lucide-react";
+import { fetchCalendarEvents } from "lib/google/fetch-calendar-events";
+import { calendarEventToTask } from "lib/google/calendar-to-task";
+import { upsertCalendarTaskInFirestore } from "lib/firebase/task-service";
+import { useUiStore } from "lib/stores/ui-store";
+
 import {
   deleteTaskFromFirestore,
   updateTaskStatusInFirestore,
@@ -137,7 +143,10 @@ export function TasksScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
+  const googleAccessToken = useAuthStore((state) => state.googleAccessToken);
+  const showToast = useUiStore((state) => state.showToast);
 
+  const [isImportingCalendar, setIsImportingCalendar] = useState(false);
   const startFocusTask = useFocusStore((state) => state.startFocusTask);
 
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
@@ -198,6 +207,58 @@ export function TasksScreen() {
     }
   }
 
+  async function handleImportCalendar() {
+    if (!user) {
+      showToast({
+        type: "error",
+        message: "Please connect your account first.",
+      });
+      return;
+    }
+
+    if (!googleAccessToken) {
+      showToast({
+        type: "info",
+        message: "Please connect Google Calendar from Account first.",
+      });
+      router.push("/account");
+      return;
+    }
+
+    setIsImportingCalendar(true);
+
+    try {
+      const events = await fetchCalendarEvents(googleAccessToken);
+
+      const tasksFromCalendar = events
+        .filter((event) => event.id)
+        .map((event) => calendarEventToTask(event));
+
+      await Promise.all(
+        tasksFromCalendar.map((task) =>
+          upsertCalendarTaskInFirestore(user.uid, task),
+        ),
+      );
+
+      showToast({
+        type: "success",
+        message:
+          tasksFromCalendar.length > 0
+            ? `${tasksFromCalendar.length} calendar events imported.`
+            : "No calendar events found for this week.",
+      });
+    } catch (error) {
+      console.error("Import calendar error:", error);
+
+      showToast({
+        type: "error",
+        message: "Could not import Calendar events.",
+      });
+    } finally {
+      setIsImportingCalendar(false);
+    }
+  }
+
   return (
     <div className="px-5 pb-28 pt-6 text-[#1F2937]">
       <header className="mb-6">
@@ -253,7 +314,29 @@ export function TasksScreen() {
           />
         </div>
       </section>
+      <section className="mb-5 rounded-[24px] border border-[#E5E7EB] bg-white p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3FF]">
+            <CalendarDays size={20} className="text-[#4F8DFD]" />
+          </div>
 
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Google Calendar</p>
+            <p className="mt-1 text-sm leading-6 text-[#6B7280]">
+              Import classes, meetings, and appointments as fixed tasks.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleImportCalendar}
+              disabled={isImportingCalendar}
+              className="mt-3 w-full rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3 text-sm font-semibold text-[#1F2937] disabled:opacity-60"
+            >
+              {isImportingCalendar ? "Importing..." : "Import from Calendar"}
+            </button>
+          </div>
+        </div>
+      </section>
       <section className="grid gap-3">
         {filteredTasks.length === 0 ? (
           <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
@@ -333,6 +416,11 @@ export function TasksScreen() {
                       >
                         {getStatusLabel(task.status)}
                       </span>
+                      {task.source === "google_calendar" ? (
+                        <span className="rounded-full bg-[#EAF3FF] px-3 py-1 text-xs font-semibold text-[#4F8DFD]">
+                          Calendar
+                        </span>
+                      ) : null}
 
                       <div className="flex shrink-0 gap-2">
                         {isDone ? (
