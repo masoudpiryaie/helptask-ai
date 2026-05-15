@@ -19,6 +19,7 @@ import {
   Sparkles,
   SunMedium,
   Timer,
+  UserRound,
 } from "lucide-react";
 import { useTaskStore } from "lib/stores/task-store";
 import { useTodayStore } from "lib/stores/today-store";
@@ -202,7 +203,7 @@ export function TodayScreen() {
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-sm"
             aria-label="Open account"
           >
-            <SunMedium size={22} className="text-[#FDBA74]" />
+            <UserRound size={22} className="text-[#FDBA74]" />
           </Link>
         </div>
       </header>
