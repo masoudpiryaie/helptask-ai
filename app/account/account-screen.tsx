@@ -169,7 +169,7 @@ export function AccountScreen() {
       } else {
         showToast({
           type: "error",
-          message: "Calendar connected, but no access token was returned.",
+          message: "Calendar conected, but no access token was returned.",
         });
       }
     } catch (error) {
