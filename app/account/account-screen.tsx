@@ -12,15 +12,17 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "lib/stores/auth-store";
 import {
+  connectGmail,
   connectGoogleCalendar,
+  getGoogleRedirectResult,
   linkAnonymousUserWithGoogle,
+  redirectToGmail,
+  redirectToGoogleCalendar,
   signInWithGoogle,
   signOutUser,
-  connectGmail,
 } from "lib/firebase/auth-service";
 import { useUiStore } from "lib/stores/ui-store";
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 function getUserName(user: ReturnType<typeof useAuthStore.getState>["user"]) {
   if (!user) return "Guest user";
 
@@ -51,7 +53,33 @@ export function AccountScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const isAnonymous = Boolean(user?.isAnonymous);
+  useEffect(() => {
+    async function handleRedirectResult() {
+      try {
+        const result = await getGoogleRedirectResult();
 
+        if (!result) return;
+
+        if (result.accessToken) {
+          setGoogleAccessToken(result.accessToken);
+        }
+
+        showToast({
+          type: "success",
+          message: "Google connection completed.",
+        });
+      } catch (error) {
+        console.error("Google redirect result error:", error);
+
+        showToast({
+          type: "error",
+          message: "Could not complete Google connection.",
+        });
+      }
+    }
+
+    handleRedirectResult();
+  }, [setGoogleAccessToken, showToast]);
   async function handleGoogleLogin() {
     setIsLoading(true);
 
@@ -146,7 +174,15 @@ export function AccountScreen() {
       }
     } catch (error) {
       console.error("Connect calendar error:", error);
-
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "auth/popup-blocked"
+      ) {
+        await redirectToGoogleCalendar();
+        return;
+      }
       showToast({
         type: "error",
         message: "Could not connect Google Calendar.",
@@ -180,7 +216,15 @@ export function AccountScreen() {
       }
     } catch (error) {
       console.error("Connect Gmail error:", error);
-
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "auth/popup-blocked"
+      ) {
+        await redirectToGmail();
+        return;
+      }
       showToast({
         type: "error",
         message: "Could not connect Gmail.",

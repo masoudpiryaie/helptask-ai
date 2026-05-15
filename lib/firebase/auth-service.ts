@@ -3,6 +3,8 @@ import {
   linkWithPopup,
   signInWithPopup,
   signOut,
+  getRedirectResult,
+  signInWithRedirect,
   type User,
   type UserCredential,
 } from "firebase/auth";
@@ -117,4 +119,28 @@ export async function connectGmail(user: User | null) {
 
 export async function signOutUser() {
   await signOut(firebaseAuth);
+}
+export async function redirectToGoogle(scopes: string[] = []) {
+  const provider = createGoogleProvider(scopes);
+
+  await signInWithRedirect(firebaseAuth, provider);
+}
+export async function redirectToGoogleCalendar() {
+  return redirectToGoogle([
+    "https://www.googleapis.com/auth/calendar.readonly",
+  ]);
+}
+export async function redirectToGmail() {
+  return redirectToGoogle(["https://www.googleapis.com/auth/gmail.send"]);
+}
+export async function getGoogleRedirectResult() {
+  const result = await getRedirectResult(firebaseAuth);
+
+  if (!result) return null;
+
+  return {
+    user: result.user,
+    accessToken: getGoogleAccessToken(result),
+    linked: false,
+  };
 }
