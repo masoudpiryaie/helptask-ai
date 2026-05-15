@@ -1,10 +1,9 @@
 import {
   GoogleAuthProvider,
-  linkWithPopup,
-  signInWithPopup,
-  signOut,
   getRedirectResult,
+  signInWithPopup,
   signInWithRedirect,
+  signOut,
   type User,
   type UserCredential,
 } from "firebase/auth";
@@ -13,8 +12,11 @@ import { firebaseAuth } from "lib/firebase/firebase-client";
 type AuthResult = {
   user: User;
   accessToken: string | null;
-  linked: boolean;
 };
+
+export type GoogleConnectionType = "google" | "calendar" | "gmail";
+
+const PENDING_GOOGLE_CONNECTION_KEY = "mindtask-pending-google-connection";
 
 function createGoogleProvider(scopes: string[] = []) {
   const provider = new GoogleAuthProvider();
@@ -36,13 +38,37 @@ function getGoogleAccessToken(result: UserCredential) {
   return credential?.accessToken || null;
 }
 
-function isFirebaseAuthError(error: unknown, code: string) {
-  return (
+export function getFirebaseErrorCode(error: unknown) {
+  if (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    (error as { code?: string }).code === code
-  );
+    typeof (error as { code?: string }).code === "string"
+  ) {
+    return (error as { code: string }).code;
+  }
+
+  return null;
+}
+
+function setPendingGoogleConnection(type: GoogleConnectionType) {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.setItem(PENDING_GOOGLE_CONNECTION_KEY, type);
+}
+
+export function getPendingGoogleConnection() {
+  if (typeof window === "undefined") return null;
+
+  return window.sessionStorage.getItem(
+    PENDING_GOOGLE_CONNECTION_KEY,
+  ) as GoogleConnectionType | null;
+}
+
+export function clearPendingGoogleConnection() {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.removeItem(PENDING_GOOGLE_CONNECTION_KEY);
 }
 
 async function signInWithGoogleProvider(
@@ -54,85 +80,52 @@ async function signInWithGoogleProvider(
   return {
     user: result.user,
     accessToken: getGoogleAccessToken(result),
-    linked: false,
   };
 }
 
-async function linkOrSignInWithGoogleProvider(
-  user: User | null,
+async function redirectWithGoogleProvider(
+  type: GoogleConnectionType,
   scopes: string[] = [],
-): Promise<AuthResult> {
+) {
   const provider = createGoogleProvider(scopes);
 
-  if (!user || !user.isAnonymous) {
-    const result = await signInWithPopup(firebaseAuth, provider);
+  setPendingGoogleConnection(type);
 
-    return {
-      user: result.user,
-      accessToken: getGoogleAccessToken(result),
-      linked: false,
-    };
-  }
-
-  try {
-    const result = await linkWithPopup(user, provider);
-
-    return {
-      user: result.user,
-      accessToken: getGoogleAccessToken(result),
-      linked: true,
-    };
-  } catch (error) {
-    if (isFirebaseAuthError(error, "auth/credential-already-in-use")) {
-      const result = await signInWithPopup(firebaseAuth, provider);
-
-      return {
-        user: result.user,
-        accessToken: getGoogleAccessToken(result),
-        linked: false,
-      };
-    }
-
-    throw error;
-  }
+  await signInWithRedirect(firebaseAuth, provider);
 }
 
 export async function signInWithGoogle() {
   return signInWithGoogleProvider();
 }
 
-export async function linkAnonymousUserWithGoogle(user: User) {
-  return linkOrSignInWithGoogleProvider(user);
+export async function signInWithGoogleByRedirect() {
+  await redirectWithGoogleProvider("google");
 }
 
-export async function connectGoogleCalendar(user: User | null) {
-  return linkOrSignInWithGoogleProvider(user, [
+export async function connectGoogleCalendar() {
+  return signInWithGoogleProvider([
     "https://www.googleapis.com/auth/calendar.readonly",
   ]);
 }
 
-export async function connectGmail(user: User | null) {
-  return linkOrSignInWithGoogleProvider(user, [
+export async function connectGoogleCalendarByRedirect() {
+  await redirectWithGoogleProvider("calendar", [
+    "https://www.googleapis.com/auth/calendar.readonly",
+  ]);
+}
+
+export async function connectGmail() {
+  return signInWithGoogleProvider([
     "https://www.googleapis.com/auth/gmail.send",
   ]);
 }
 
-export async function signOutUser() {
-  await signOut(firebaseAuth);
-}
-export async function redirectToGoogle(scopes: string[] = []) {
-  const provider = createGoogleProvider(scopes);
-
-  await signInWithRedirect(firebaseAuth, provider);
-}
-export async function redirectToGoogleCalendar() {
-  return redirectToGoogle([
-    "https://www.googleapis.com/auth/calendar.readonly",
+export async function connectGmailByRedirect() {
+  await redirectWithGoogleProvider("gmail", [
+    "https://www.googleapis.com/auth/gmail.send",
   ]);
 }
-export async function redirectToGmail() {
-  return redirectToGoogle(["https://www.googleapis.com/auth/gmail.send"]);
-}
+
 export async function getGoogleRedirectResult() {
   const result = await getRedirectResult(firebaseAuth);
 
@@ -141,6 +134,10 @@ export async function getGoogleRedirectResult() {
   return {
     user: result.user,
     accessToken: getGoogleAccessToken(result),
-    linked: false,
   };
+}
+
+export async function signOutUser() {
+  clearPendingGoogleConnection();
+  await signOut(firebaseAuth);
 }

@@ -27,7 +27,6 @@ import { useTaskStore } from "lib/stores/task-store";
 import { useFocusStore } from "lib/stores/focus-store";
 import type { Task, TaskStatus } from "types/task";
 import { EmailAssistantCard } from "components/tasks/email-assistant-card";
-
 type TaskDetailScreenProps = {
   taskId: string;
 };
